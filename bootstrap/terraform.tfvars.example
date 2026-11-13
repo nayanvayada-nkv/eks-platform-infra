@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and edit. Nothing here is secret.
+github_org  = "CHANGE_ME"
+github_repo = "eks-platform-infra"
+aws_region  = "ap-south-1"
+project     = "eks-platform"
+extra_tags = {
+  Owner = "platform-team"
+  Env   = "shared"
+}
