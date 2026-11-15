@@ -1,0 +1,7 @@
+# Used by every stack under live/: terraform init -backend-config=../../../backend.hcl
+# Only `key` changes per stack, e.g. prod/ap-south-1/network/terraform.tfstate
+bucket       = "REPLACE_WITH_STATE_BUCKET"
+region       = "ap-south-1"
+encrypt      = true
+kms_key_id   = "alias/eks-platform-tfstate"
+use_lockfile = true

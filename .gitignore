@@ -1,0 +1,24 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# Keep the lock file in Git
+!.terraform.lock.hcl
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+# Secrets - never commit
+*.pem
+*.key
+.env
