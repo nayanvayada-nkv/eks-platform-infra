@@ -18,6 +18,7 @@ locals {
 # KMS key for Terraform state
 # ---------------------------------------------------------------------------
 resource "aws_kms_key" "state" {
+  #checkov:skip=CKV2_AWS_64:Default key policy delegates to IAM in this single account
   description             = "${var.project} Terraform state encryption"
   enable_key_rotation     = true
   deletion_window_in_days = 30
@@ -32,10 +33,14 @@ resource "aws_kms_alias" "state" {
 # S3 bucket for remote state (versioned, encrypted, private, TLS only)
 # ---------------------------------------------------------------------------
 resource "aws_s3_bucket" "state" {
-  bucket = local.state_bucket_name
+  #checkov:skip=CKV_AWS_18:State access is audited by CloudTrail; separate access-log bucket not worth it for one bucket
+  #checkov:skip=CKV_AWS_144:Versioning covers state recovery; cross-region copy is added with DR in Phase 7
+  #checkov:skip=CKV2_AWS_62:No consumers for bucket events
+  bucket        = local.state_bucket_name
+  force_destroy = true
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 

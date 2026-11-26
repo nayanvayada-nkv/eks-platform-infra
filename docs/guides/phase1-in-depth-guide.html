@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 1 In-Depth Guide</title>
+<style>
+  @page { size: A4; margin: 9mm 10mm 10mm; }
+  :root {
+    --ink: #1b2430; --muted: #5b6573; --line: #d5dbe3; --bg: #ffffff;
+    --navy: #1f3a68; --green: #1f7a4d; --greenbg: #eef8f2; --amber: #a35b00; --amberbg: #fff6e8;
+    --blue: #2457a6; --bluebg: #eef4fc; --purple: #6a3fb0; --purplebg: #f5f0fc; --red: #b3261e; --redbg: #fdeeee;
+    --grey: #f4f6f9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 9.3pt/1.38 "Segoe UI", system-ui, -apple-system, Arial, sans-serif; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size: 20pt; margin: 0 0 2px; color: var(--navy); letter-spacing: -0.01em; }
+  h2 { font-size: 12.5pt; margin: 10px 0 5px; color: var(--navy); border-bottom: 2px solid var(--navy); padding-bottom: 3px; }
+  h3 { font-size: 10.2pt; margin: 8px 0 3px; color: var(--ink); }
+  p { margin: 4px 0 7px; }
+  ul, ol { margin: 4px 0 8px; padding-left: 18px; }
+  li { margin: 2px 0; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; background: var(--grey);
+         padding: 0 3px; border-radius: 3px; }
+  pre { font-family: Consolas, "Cascadia Mono", monospace; font-size: 8.6pt; background: var(--grey);
+        border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; margin: 5px 0 9px; white-space: pre-wrap; }
+  .sub { color: var(--muted); margin: 0 0 8px; }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-size: 8.6pt; }
+  th, td { border: 1px solid var(--line); padding: 3px 5px; text-align: left; vertical-align: top; }
+  th { background: var(--grey); font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; break-inside: avoid; }
+  .why { border-left: 4px solid var(--green); background: var(--greenbg); padding: 6px 10px; margin: 6px 0 9px; border-radius: 0 6px 6px 0; break-inside: avoid; }
+  .warn { border-left: 4px solid var(--amber); background: var(--amberbg); padding: 6px 10px; margin: 6px 0 9px; border-radius: 0 6px 6px 0; break-inside: avoid; }
+  .bug { border-left: 4px solid var(--red); background: var(--redbg); padding: 6px 10px; margin: 6px 0 9px; border-radius: 0 6px 6px 0; break-inside: avoid; }
+  .tag { display: inline-block; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; color: #fff; background: var(--navy); vertical-align: 1px; }
+  .qa { border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; margin: 0 0 5px; break-inside: avoid; }
+  .qa b.q { color: var(--navy); }
+  .diagram { border: 1px solid var(--line); border-radius: 10px; padding: 6px; margin: 6px 0 8px; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .legend { font-size: 8.4pt; color: var(--muted); margin: 2px 4px 0; }
+  .foot { font-size: 8.4pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- =============================== PAGE 1 =============================== -->
+<section class="page">
+  <h1>Phase 1 In-Depth Guide: VPC + EKS in Mumbai (dev)</h1>
+  <p class="sub">Zero Trust EKS Project 2.0 &middot; repo <code>eks-platform-infra</code> &middot; 22 Nov 2026 &middot; written and validated, not applied yet</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 760 560" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#1b2430"/>
+      </marker>
+      <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#2457a6"/>
+      </marker>
+    </defs>
+
+    <!-- Top actors -->
+    <rect x="150" y="14" width="210" height="44" rx="8" fill="#f4f6f9" stroke="#5b6573"/>
+    <text x="255" y="32" font-size="12" font-weight="700" text-anchor="middle" fill="#1b2430">App users (Phase 4+)</text>
+    <text x="255" y="48" font-size="10" text-anchor="middle" fill="#5b6573">HTTPS to the ALB</text>
+
+    <rect x="500" y="14" width="225" height="44" rx="8" fill="#f4f6f9" stroke="#5b6573"/>
+    <text x="612" y="32" font-size="12" font-weight="700" text-anchor="middle" fill="#1b2430">You: kubectl / terraform</text>
+    <text x="612" y="48" font-size="10" text-anchor="middle" fill="#5b6573">public API endpoint, your IP /32 only</text>
+
+    <!-- Region -->
+    <rect x="18" y="76" width="724" height="404" rx="12" fill="#ffffff" stroke="#1f7a4d" stroke-width="2"/>
+    <text x="30" y="94" font-size="11.5" font-weight="700" fill="#1f7a4d">AWS ap-south-1 (Mumbai)</text>
+
+    <!-- VPC -->
+    <rect x="32" y="102" width="456" height="366" rx="10" fill="#eef8f2" stroke="#1f7a4d"/>
+    <text x="42" y="119" font-size="11" font-weight="700" fill="#1f7a4d">VPC 10.20.0.0/16</text>
+
+    <!-- IGW -->
+    <rect x="205" y="96" width="100" height="24" rx="5" fill="#1f7a4d"/>
+    <text x="255" y="112" font-size="10.5" font-weight="700" text-anchor="middle" fill="#fff">Internet Gateway</text>
+    <line x1="255" y1="58" x2="255" y2="94" stroke="#1b2430" stroke-width="1.4" marker-end="url(#ar)"/>
+
+    <!-- AZ labels -->
+    <text x="112" y="140" font-size="10" font-weight="700" text-anchor="middle" fill="#5b6573">ap-south-1a</text>
+    <text x="260" y="140" font-size="10" font-weight="700" text-anchor="middle" fill="#5b6573">ap-south-1b</text>
+    <text x="408" y="140" font-size="10" font-weight="700" text-anchor="middle" fill="#5b6573">ap-south-1c</text>
+
+    <!-- Public subnets -->
+    <g font-size="9.5" fill="#a35b00">
+      <rect x="42" y="146" width="140" height="82" rx="7" fill="#fff6e8" stroke="#a35b00"/>
+      <rect x="190" y="146" width="140" height="82" rx="7" fill="#fff6e8" stroke="#a35b00"/>
+      <rect x="338" y="146" width="140" height="82" rx="7" fill="#fff6e8" stroke="#a35b00"/>
+      <text x="50" y="160" font-weight="700">Public 10.20.0.0/24</text>
+      <text x="198" y="160" font-weight="700">Public 10.20.1.0/24</text>
+      <text x="346" y="160" font-weight="700">Public 10.20.2.0/24</text>
+    </g>
+    <rect x="52" y="166" width="120" height="22" rx="5" fill="#ffffff" stroke="#a35b00"/>
+    <text x="112" y="181" font-size="9.5" text-anchor="middle" fill="#1b2430">NAT gateway (1, dev)</text>
+    <rect x="52" y="196" width="416" height="24" rx="5" fill="#ffffff" stroke="#2457a6" stroke-dasharray="5 3"/>
+    <text x="260" y="212" font-size="9.5" text-anchor="middle" fill="#2457a6">ALB across 3 AZs: created later by the LB controller from an Ingress (tag kubernetes.io/role/elb)</text>
+
+    <!-- Private subnets -->
+    <g font-size="9.5" fill="#2457a6">
+      <rect x="42" y="238" width="140" height="172" rx="7" fill="#eef4fc" stroke="#2457a6"/>
+      <rect x="190" y="238" width="140" height="172" rx="7" fill="#eef4fc" stroke="#2457a6"/>
+      <rect x="338" y="238" width="140" height="172" rx="7" fill="#eef4fc" stroke="#2457a6"/>
+      <text x="50" y="252" font-weight="700">Private 10.20.16.0/20</text>
+      <text x="198" y="252" font-weight="700">Private 10.20.32.0/20</text>
+      <text x="346" y="252" font-weight="700">Private 10.20.48.0/20</text>
+    </g>
+    <!-- nodes -->
+    <rect x="52" y="260" width="120" height="58" rx="6" fill="#ffffff" stroke="#1b2430"/>
+    <text x="112" y="275" font-size="9.5" font-weight="700" text-anchor="middle">system node</text>
+    <text x="112" y="288" font-size="8.6" text-anchor="middle" fill="#5b6573">t3.medium on-demand</text>
+    <text x="112" y="300" font-size="8.6" text-anchor="middle" fill="#5b6573">CoreDNS, Karpenter,</text>
+    <text x="112" y="311" font-size="8.6" text-anchor="middle" fill="#5b6573">LB controller</text>
+
+    <rect x="200" y="260" width="120" height="58" rx="6" fill="#ffffff" stroke="#1b2430"/>
+    <text x="260" y="275" font-size="9.5" font-weight="700" text-anchor="middle">system node</text>
+    <text x="260" y="288" font-size="8.6" text-anchor="middle" fill="#5b6573">t3.medium on-demand</text>
+    <text x="260" y="300" font-size="8.6" text-anchor="middle" fill="#5b6573">managed node group</text>
+    <text x="260" y="311" font-size="8.6" text-anchor="middle" fill="#5b6573">"system", 2 to 3 nodes</text>
+
+    <rect x="348" y="260" width="120" height="58" rx="6" fill="#ffffff" stroke="#6a3fb0" stroke-dasharray="5 3"/>
+    <text x="408" y="275" font-size="9.5" font-weight="700" text-anchor="middle" fill="#6a3fb0">Karpenter node</text>
+    <text x="408" y="288" font-size="8.6" text-anchor="middle" fill="#5b6573">spot first, on demand</text>
+    <text x="408" y="300" font-size="8.6" text-anchor="middle" fill="#5b6573">only when pods wait,</text>
+    <text x="408" y="311" font-size="8.6" text-anchor="middle" fill="#5b6573">max 16 vCPU total</text>
+
+    <!-- ENIs -->
+    <g font-size="8.6" text-anchor="middle" fill="#1b2430">
+      <rect x="72" y="328" width="80" height="20" rx="4" fill="#ffffff" stroke="#5b6573"/>
+      <text x="112" y="342">API ENI (private)</text>
+      <rect x="220" y="328" width="80" height="20" rx="4" fill="#ffffff" stroke="#5b6573"/>
+      <text x="260" y="342">API ENI (private)</text>
+      <rect x="368" y="328" width="80" height="20" rx="4" fill="#ffffff" stroke="#5b6573"/>
+      <text x="408" y="342">API ENI (private)</text>
+    </g>
+    <text x="260" y="370" font-size="9" text-anchor="middle" fill="#2457a6">Pods get real VPC IPs (VPC CNI), so private subnets are big /20s (4,091 usable IPs each)</text>
+    <text x="260" y="386" font-size="9" text-anchor="middle" fill="#2457a6">Outbound internet: private route table &#8594; NAT &#8594; IGW. No inbound from the internet.</text>
+    <text x="260" y="401" font-size="9" text-anchor="middle" fill="#2457a6">Tags: kubernetes.io/role/internal-elb, karpenter.sh/discovery</text>
+
+    <!-- S3 endpoint -->
+    <rect x="42" y="420" width="200" height="38" rx="6" fill="#ffffff" stroke="#1f7a4d"/>
+    <text x="142" y="436" font-size="9.5" font-weight="700" text-anchor="middle" fill="#1f7a4d">S3 gateway endpoint (free)</text>
+    <text x="142" y="450" font-size="8.6" text-anchor="middle" fill="#5b6573">S3 traffic skips the NAT</text>
+    <rect x="252" y="420" width="226" height="38" rx="6" fill="#ffffff" stroke="#5b6573"/>
+    <text x="365" y="436" font-size="9.5" font-weight="700" text-anchor="middle">Default security group locked</text>
+    <text x="365" y="450" font-size="8.6" text-anchor="middle" fill="#5b6573">no rules, so nothing uses it by accident</text>
+
+    <!-- AWS managed column -->
+    <text x="502" y="116" font-size="9.5" font-weight="700" text-anchor="start" fill="#5b6573">AWS-managed, outside your VPC</text>
+    <rect x="500" y="126" width="230" height="84" rx="8" fill="#1f3a68"/>
+    <text x="615" y="146" font-size="11.5" font-weight="700" text-anchor="middle" fill="#fff">EKS control plane (k8s 1.36)</text>
+    <text x="615" y="163" font-size="9.2" text-anchor="middle" fill="#dfe7f5">API server + etcd, run by AWS across AZs</text>
+    <text x="615" y="178" font-size="9.2" text-anchor="middle" fill="#dfe7f5">auth: access entries (API mode)</text>
+    <text x="615" y="193" font-size="9.2" text-anchor="middle" fill="#dfe7f5">nodes reach it via the ENIs (private)</text>
+    <line x1="700" y1="58" x2="700" y2="124" stroke="#1b2430" stroke-width="1.4" marker-end="url(#ar)"/>
+
+    <g font-size="9.2" text-anchor="middle">
+      <rect x="500" y="220" width="230" height="38" rx="6" fill="#fdeeee" stroke="#b3261e"/>
+      <text x="615" y="236" font-weight="700" fill="#b3261e">KMS key</text>
+      <text x="615" y="250" fill="#1b2430">encrypts Kubernetes Secrets in etcd</text>
+
+      <rect x="500" y="266" width="230" height="38" rx="6" fill="#ffffff" stroke="#5b6573"/>
+      <text x="615" y="282" font-weight="700">CloudWatch Logs (30 days)</text>
+      <text x="615" y="296" fill="#5b6573">api, audit, authenticator</text>
+
+      <rect x="500" y="312" width="230" height="52" rx="6" fill="#f5f0fc" stroke="#6a3fb0"/>
+      <text x="615" y="328" font-weight="700" fill="#6a3fb0">IAM roles via Pod Identity</text>
+      <text x="615" y="342" fill="#1b2430">Karpenter &#183; LB controller &#183; EBS CSI</text>
+      <text x="615" y="356" fill="#5b6573">+ OIDC provider so IRSA still works</text>
+
+      <rect x="500" y="372" width="230" height="38" rx="6" fill="#ffffff" stroke="#6a3fb0"/>
+      <text x="615" y="388" font-weight="700" fill="#6a3fb0">EventBridge &#8594; SQS</text>
+      <text x="615" y="402" fill="#5b6573">spot interruption warnings for Karpenter</text>
+
+      <rect x="500" y="418" width="230" height="40" rx="6" fill="#ffffff" stroke="#5b6573"/>
+      <text x="615" y="434" font-weight="700">Managed add-ons</text>
+      <text x="615" y="448" fill="#5b6573">VPC CNI, kube-proxy, CoreDNS, Pod Identity, EBS CSI</text>
+    </g>
+
+    <!-- State strip -->
+    <text x="20" y="502" font-size="10.5" font-weight="700" fill="#1b2430">Terraform: 3 stacks, 3 state files, applied in order</text>
+    <g font-size="9.5" text-anchor="middle">
+      <rect x="20" y="510" width="150" height="38" rx="6" fill="#eef8f2" stroke="#1f7a4d"/>
+      <text x="95" y="526" font-weight="700">1. dev/network</text>
+      <text x="95" y="540" fill="#5b6573">VPC, subnets, NAT</text>
+      <rect x="200" y="510" width="150" height="38" rx="6" fill="#eef4fc" stroke="#2457a6"/>
+      <text x="275" y="526" font-weight="700">2. dev/eks</text>
+      <text x="275" y="540" fill="#5b6573">cluster, nodes, IAM</text>
+      <rect x="380" y="510" width="150" height="38" rx="6" fill="#f5f0fc" stroke="#6a3fb0"/>
+      <text x="455" y="526" font-weight="700">3. dev/platform</text>
+      <text x="455" y="540" fill="#5b6573">Helm: LBC, Karpenter</text>
+      <rect x="560" y="510" width="180" height="38" rx="6" fill="#fdeeee" stroke="#b3261e"/>
+      <text x="650" y="526" font-weight="700">S3 state bucket + KMS</text>
+      <text x="650" y="540" fill="#5b6573">from bootstrap/ (Phase 0)</text>
+    </g>
+    <line x1="170" y1="529" x2="198" y2="529" stroke="#1b2430" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="350" y1="529" x2="378" y2="529" stroke="#1b2430" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="530" y1="529" x2="558" y2="529" stroke="#1b2430" stroke-width="1.2" stroke-dasharray="4 3"/>
+  </svg>
+  <p class="legend">Green = network you own &middot; Amber = public tier &middot; Blue = private tier &middot; Purple dashed = created on demand &middot; Navy = AWS-managed control plane. This is the "Mumbai (Primary)" box of the full architecture diagram (<code>docs/architecture.webp</code>).</p>
+  </div>
+
+  <h2>What we did today</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0">Found and fixed</h3>
+      <ul>
+        <li>Network stack pointed at <code>../../../../../modules/vpc</code> (old <code>live/</code> depth). Fixed to <code>../../../modules/vpc</code>.</li>
+        <li>Shared backend file was deleted with <code>live/</code>. Added <code>environments/backend.hcl.example</code>.</li>
+        <li>Bootstrap state is empty: the state bucket was destroyed and must be re-applied first.</li>
+        <li>Version drift: AWS provider 5 &#8594; 6 (<code>aws_region.name</code> became <code>.region</code>), k8s 1.33 is now in paid extended support.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Built (code only, $0 so far)</h3>
+      <ul>
+        <li><code>modules/eks</code>: cluster, KMS, logs, system nodes, add-ons, OIDC.</li>
+        <li><code>environments/dev/eks</code>: cluster + Karpenter and LB controller IAM.</li>
+        <li><code>environments/dev/platform</code>: Helm for LB controller, metrics-server, Karpenter, NodePool.</li>
+        <li>Optional interface VPC endpoints, CI validates every stack, ADR 0004, <code>docs/architecture.md</code>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== PAGE 2 =============================== -->
+<section class="page">
+  <h2>1. The network (<code>modules/vpc</code>)</h2>
+  <p>Every EKS design starts with IP planning, because on EKS <b>each pod gets a real VPC IP address</b> from the subnet its node is in (the AWS VPC CNI plugin). Run out of IPs and pods stay <code>Pending</code> even when nodes have free CPU.</p>
+
+  <table>
+    <tr><th>Piece</th><th>Value</th><th>Why this choice</th></tr>
+    <tr><td>VPC CIDR</td><td><code>10.20.0.0/16</code> (65,536 IPs)</td><td>Room for DR VPCs later with no overlap (Germany could be <code>10.30.0.0/16</code>). Overlapping CIDRs block VPC peering and Transit Gateway.</td></tr>
+    <tr><td>Public subnets</td><td>3 &times; <code>/24</code> (251 usable each)</td><td>Only load balancers and the NAT live here. Small is fine.</td></tr>
+    <tr><td>Private subnets</td><td>3 &times; <code>/20</code> (4,091 usable each)</td><td>Nodes <i>and pods</i> live here. AWS reserves 5 IPs per subnet.</td></tr>
+    <tr><td>AZs</td><td>3 (from <code>aws_availability_zones</code>)</td><td>Survives losing one AZ. EKS needs at least 2.</td></tr>
+    <tr><td>NAT</td><td>1 gateway (dev)</td><td>~$0.056/h each. Prod uses one per AZ so an AZ failure doesn't cut off the other AZs' outbound traffic.</td></tr>
+    <tr><td>S3 endpoint</td><td>Gateway type</td><td>Free. Image layers from ECR are stored in S3, so this cuts NAT data charges.</td></tr>
+  </table>
+
+  <h3>How traffic flows</h3>
+  <ul>
+    <li><b>Inbound:</b> internet &#8594; Internet Gateway &#8594; ALB in the public subnets &#8594; pod IP in a private subnet. Nothing in a private subnet has a public IP.</li>
+    <li><b>Outbound from a pod:</b> private route table <code>0.0.0.0/0 &#8594; NAT</code> &#8594; NAT (public subnet) &#8594; IGW. The NAT translates the private IP to its Elastic IP.</li>
+    <li><b>To S3:</b> the route table has a prefix-list route to the gateway endpoint, so S3 traffic never touches the NAT.</li>
+  </ul>
+
+  <h3>Subnet tags: how Kubernetes finds subnets</h3>
+  <table>
+    <tr><th>Tag</th><th>Read by</th><th>Meaning</th></tr>
+    <tr><td><code>kubernetes.io/role/elb = 1</code></td><td>LB controller</td><td>Put internet-facing ALBs/NLBs here.</td></tr>
+    <tr><td><code>kubernetes.io/role/internal-elb = 1</code></td><td>LB controller</td><td>Put internal load balancers here.</td></tr>
+    <tr><td><code>karpenter.sh/discovery = &lt;cluster&gt;</code></td><td>Karpenter</td><td>Launch new nodes in these subnets (also used on the security group).</td></tr>
+  </table>
+
+  <h3>Small security details that interviewers like</h3>
+  <ul>
+    <li><code>map_public_ip_on_launch = false</code> even on public subnets: no instance gets a public IP by accident.</li>
+    <li><code>aws_default_security_group</code> with no rules: every VPC has a default SG that allows all traffic between its members. Taking it over and leaving it empty means nothing can silently use it (a CIS benchmark check).</li>
+    <li>Interface endpoints (ECR, STS, SSM, logs) are a variable, off in dev. Each costs ~$0.013/h <i>per AZ</i>: 7 services &times; 3 AZs is about $6/day. That's a real cost trade-off you can explain.</li>
+  </ul>
+
+  <div class="why"><b>Interview one-liner:</b> "I sized private subnets as /20s because the VPC CNI gives every pod a VPC IP. Public subnets only hold load balancers and NAT, so /24 is enough. Dev uses one NAT to save money; prod uses one per AZ to remove the single point of failure."</div>
+
+  <h2>2. Why three stacks and three state files</h2>
+  <p><code>network</code> &#8594; <code>eks</code> &#8594; <code>platform</code>. Each has its own <code>backend.tf</code> key in the same S3 bucket, and later stacks read earlier ones with <code>terraform_remote_state</code>.</p>
+  <ul>
+    <li><b>Blast radius:</b> a mistake in a Helm chart can't plan a change to the VPC.</li>
+    <li><b>Speed:</b> smaller state = faster plan, fewer locks.</li>
+    <li><b>The provider chicken-and-egg problem:</b> the Helm and kubectl providers need the cluster endpoint <i>at plan time</i>. If the cluster and the Helm releases are in one stack, the first plan fails because the cluster doesn't exist yet. Splitting them solves it.</li>
+    <li><b>Destroy in reverse</b> (platform, eks, network). Delete Ingresses first, or the ALBs the controller created keep ENIs in the subnets and the VPC destroy hangs.</li>
+  </ul>
+</section>
+
+<!-- =============================== PAGE 3 =============================== -->
+<section class="page">
+  <h2>3. The EKS cluster (<code>modules/eks</code>)</h2>
+
+  <h3>Control plane</h3>
+  <p>EKS runs the API server and etcd for you across 3 AZs in an AWS-owned account. Your VPC only sees <b>ENIs</b> that EKS places in your private subnets; that's how nodes talk to the API privately.</p>
+  <table>
+    <tr><th>Setting</th><th>Our value</th><th>What it does</th></tr>
+    <tr><td><code>endpoint_private_access</code></td><td>true</td><td>Nodes reach the API through the ENIs, never the internet.</td></tr>
+    <tr><td><code>endpoint_public_access</code> + <code>public_access_cidrs</code></td><td>true, your IP /32</td><td>You can run kubectl from your laptop; the rest of the internet can't even reach the API. The tfvars validation rejects <code>0.0.0.0/0</code>.</td></tr>
+    <tr><td><code>encryption_config</code></td><td>KMS key, <code>secrets</code></td><td><b>Envelope encryption:</b> each Secret is encrypted with a data key, and that data key is encrypted with your KMS key. A copy of etcd alone is useless.</td></tr>
+    <tr><td><code>enabled_cluster_log_types</code></td><td>api, audit, authenticator</td><td><i>audit</i> answers "who deleted that deployment?". We create the log group first so Terraform owns retention (30 days); otherwise EKS creates it with no expiry.</td></tr>
+    <tr><td><code>upgrade_policy</code></td><td>STANDARD</td><td>Standard support is 14 months. After that, extended support costs $0.60/h instead of $0.10/h (6&times;). STANDARD means AWS auto-upgrades you instead of billing you.</td></tr>
+  </table>
+
+  <h3>Who can log in: access entries (not aws-auth)</h3>
+  <p><code>authentication_mode = "API"</code> uses <b>EKS access entries</b>, the replacement for the old <code>aws-auth</code> ConfigMap. Access is managed through the AWS API and Terraform, so a bad YAML edit can no longer lock everyone out of the cluster. The creator gets admin automatically; <code>admin_principal_arns</code> adds more people with <code>AmazonEKSClusterAdminPolicy</code>.</p>
+
+  <h3>System node group (managed)</h3>
+  <ul>
+    <li>2 &times; <code>t3.medium</code>, on-demand, AL2023, label <code>node-role/system=true</code>. Runs CoreDNS, the LB controller and <b>Karpenter itself</b>. Karpenter must not run on nodes it manages, or it could delete its own node.</li>
+    <li><code>ignore_changes = [desired_size]</code>: Terraform sets the size once and doesn't fight an autoscaler afterwards.</li>
+    <li><b>Launch template, IMDSv2 required, hop limit 1:</b> the instance metadata service holds the node role's credentials. A pod is one network hop further away than the node, so with hop limit 1 its packets never reach IMDS. A compromised pod can't steal the node's IAM role. This is a classic Zero Trust interview point.</li>
+    <li>Encrypted gp3 root volumes; <code>AmazonSSMManagedInstanceCore</code> so you use Session Manager, never SSH keys.</li>
+  </ul>
+
+  <h3>Add-on ordering (a real-world gotcha)</h3>
+  <table>
+    <tr><th>Add-on</th><th>When</th><th>Why</th></tr>
+    <tr><td>vpc-cni, kube-proxy, eks-pod-identity-agent</td><td>Before nodes</td><td>Nodes stay <code>NotReady</code> until a CNI exists; Pod Identity must be ready before pods need AWS credentials.</td></tr>
+    <tr><td>coredns</td><td>After nodes</td><td>It's a Deployment. With no nodes it can't schedule and the add-on hangs in <code>DEGRADED</code>, failing the apply.</td></tr>
+    <tr><td>aws-ebs-csi-driver</td><td>After nodes</td><td>Lets pods use EBS volumes (Prometheus, Phase 6). Gets its IAM role through Pod Identity.</td></tr>
+  </table>
+
+  <div class="why"><b>Interview one-liner:</b> "The API is private for nodes and public only for my IP. Secrets are envelope-encrypted with a customer KMS key, audit logs go to CloudWatch, access uses access entries instead of aws-auth, and nodes enforce IMDSv2 with hop limit 1 so pods can't steal node credentials."</div>
+</section>
+
+<!-- =============================== PAGE 4 =============================== -->
+<section class="page">
+  <h2>4. Giving pods AWS permissions: IRSA vs Pod Identity</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0">IRSA (2019)</h3>
+      <ol>
+        <li>Cluster has an OIDC issuer; you register it as an IAM OIDC provider.</li>
+        <li>Role trust policy names that provider and the exact <code>system:serviceaccount:ns:name</code>.</li>
+        <li>Service account annotated with the role ARN.</li>
+        <li>The SDK calls <code>sts:AssumeRoleWithWebIdentity</code> with the projected token.</li>
+      </ol>
+      <p class="foot">Downside: each role's trust policy is tied to one cluster's OIDC URL, so a new cluster (DR!) means editing every role.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Pod Identity (2023, what we use)</h3>
+      <ol>
+        <li>Role trusts the service principal <code>pods.eks.amazonaws.com</code>.</li>
+        <li>An <b>association</b> (cluster + namespace + service account &#8594; role) is created by the EKS API.</li>
+        <li>The <code>eks-pod-identity-agent</code> DaemonSet hands credentials to the pod.</li>
+      </ol>
+      <p class="foot">Upside: same role reused across clusters; no annotations; no OIDC provider per cluster. We still create the OIDC provider so IRSA works for tools that need it (ADR 0004).</p>
+    </div>
+  </div>
+  <p>Three roles today: <b>Karpenter</b> (launch/terminate EC2, read SQS), <b>AWS Load Balancer Controller</b> (create ALBs, target groups, security group rules), <b>EBS CSI</b> (create/attach volumes). Each pod gets only its own permissions: least privilege per workload, not per node.</p>
+
+  <h2>5. The platform stack (<code>environments/dev/platform</code>)</h2>
+
+  <h3>AWS Load Balancer Controller</h3>
+  <p>Watches <code>Ingress</code> and <code>Service type=LoadBalancer</code> objects and creates real ALBs/NLBs. With <code>target-type: ip</code> the ALB sends traffic straight to pod IPs (possible because pods have VPC IPs), skipping NodePort and kube-proxy hops. In the diagram, this is the "ALB, TLS entry point" box.</p>
+
+  <h3>Karpenter (just-in-time nodes)</h3>
+  <ol>
+    <li>A pod is <code>Pending</code> because no node has room.</li>
+    <li>Karpenter reads the pod's needs (CPU, memory, arch, zone, tolerations) and picks the <b>cheapest instance type</b> that fits from the <code>NodePool</code> rules.</li>
+    <li>It calls EC2 directly (no Auto Scaling group), so the node usually joins within about a minute.</li>
+    <li><b>Consolidation</b> (<code>WhenEmptyOrUnderutilized</code>, after 1 min): it removes empty nodes and repacks pods onto fewer or cheaper nodes.</li>
+    <li><b>Spot interruptions:</b> AWS sends a 2-minute warning to EventBridge &#8594; SQS. Karpenter reads the queue, cordons and drains the node, and launches a replacement before the instance disappears.</li>
+  </ol>
+  <table>
+    <tr><th>Our NodePool rule</th><th>Reason</th></tr>
+    <tr><td><code>capacity-type: spot, on-demand</code></td><td>Spot is up to ~70% cheaper; on-demand is the fallback when no spot capacity exists.</td></tr>
+    <tr><td>Families c, m, t; generation &gt; 4; size medium&ndash;xlarge</td><td>Modern instances, no huge surprise nodes in dev.</td></tr>
+    <tr><td><code>limits.cpu = 16</code></td><td><b>Cost guard rail:</b> a runaway Deployment can't launch 50 nodes.</td></tr>
+    <tr><td><code>expireAfter: 720h</code></td><td>Nodes are replaced every 30 days, so they always run a recent, patched AMI.</td></tr>
+    <tr><td>EC2NodeClass: <code>al2023@latest</code>, IMDSv2 hop 1, encrypted gp3</td><td>Same hardening as the system nodes. Pin the AMI version in prod so upgrades are deliberate.</td></tr>
+  </table>
+
+  <h3>HPA + Karpenter together (diagram box "HPA + Karpenter")</h3>
+  <p><b>metrics-server</b> collects pod CPU/memory. The <b>HPA</b> scales <i>pods</i> (for example 2 &#8594; 6 replicas at 70% CPU). New pods that don't fit go <code>Pending</code>, and <b>Karpenter</b> scales <i>nodes</i>. When load drops, the HPA removes pods and Karpenter consolidates the empty nodes. Two layers, each doing one job.</p>
+
+  <div class="why"><b>Interview one-liner:</b> "HPA scales pods using metrics-server; Karpenter scales nodes by watching for Pending pods and picking the cheapest instance that fits. Spot interruptions come through EventBridge and SQS so Karpenter can drain nodes before AWS reclaims them, and a CPU limit on the NodePool caps cost."</div>
+</section>
+
+<!-- =============================== PAGE 5 =============================== -->
+<section class="page">
+  <h2>6. Cost of Phase 1 (dev, ap-south-1, approximate)</h2>
+  <table>
+    <tr><th>Item</th><th>Per hour</th><th>Per day</th><th>Notes</th></tr>
+    <tr><td>EKS control plane</td><td>$0.10</td><td>$2.40</td><td>$0.60/h if it falls into extended support</td></tr>
+    <tr><td>NAT gateway</td><td>~$0.056</td><td>~$1.35</td><td>+ ~$0.056 per GB processed</td></tr>
+    <tr><td>2 &times; t3.medium</td><td>~$0.09</td><td>~$2.15</td><td>system node group</td></tr>
+    <tr><td>EBS, logs, KMS, SQS</td><td>small</td><td>~$0.30</td><td>KMS keys are $1/month each</td></tr>
+    <tr><td><b>Total</b></td><td></td><td><b>~$6&ndash;7</b></td><td>+ Karpenter nodes when you deploy apps</td></tr>
+  </table>
+  <div class="warn"><b>Rule:</b> build, test, take screenshots, destroy. Leaving it up for a month costs about $200.</div>
+
+  <h2>7. Interview questions with model answers</h2>
+
+  <div class="qa"><b class="q">Q1. Why do EKS clusters run out of IP addresses, and how did you plan for it?</b><br>
+  The VPC CNI gives each pod an IP from the node's subnet, and each instance type has an ENI/IP limit. I made private subnets /20 (about 4,000 IPs each across 3 AZs). If it ever gets tight, the options are prefix delegation (a /28 per ENI slot) or a secondary CIDR (for example 100.64.0.0/16) with custom networking.</div>
+
+  <div class="qa"><b class="q">Q2. Public subnet vs private subnet: what actually makes a subnet "public"?</b><br>
+  Only its route table: a <code>0.0.0.0/0</code> route to an Internet Gateway. Private subnets route <code>0.0.0.0/0</code> to a NAT gateway, which allows outbound connections but no inbound ones.</div>
+
+  <div class="qa"><b class="q">Q3. How do you secure the EKS API endpoint?</b><br>
+  Private access on so nodes stay inside the VPC; public access either off or restricted to known CIDRs; authentication through IAM, authorization through access entries and RBAC; audit logs to CloudWatch.</div>
+
+  <div class="qa"><b class="q">Q4. What is envelope encryption for Secrets, and why does it matter?</b><br>
+  Kubernetes Secrets are only base64 by default. With a KMS provider, each Secret is encrypted with a data key, and the data key is encrypted with a KMS key you control. Without KMS permission, an etcd backup is unreadable, and every decrypt shows up in CloudTrail.</div>
+
+  <div class="qa"><b class="q">Q5. aws-auth ConfigMap vs access entries?</b><br>
+  aws-auth is a YAML file inside the cluster: one bad edit can lock everyone out, and it isn't visible from IAM. Access entries are an EKS API resource, managed by Terraform, auditable in CloudTrail, with managed policies like <code>AmazonEKSClusterAdminPolicy</code>.</div>
+
+  <div class="qa"><b class="q">Q6. IRSA vs EKS Pod Identity?</b><br>
+  Both give a single service account its own IAM role. IRSA uses an OIDC provider and <code>AssumeRoleWithWebIdentity</code>, and its trust policy is tied to one cluster. Pod Identity uses an agent plus associations, trusts <code>pods.eks.amazonaws.com</code>, and the same role can serve many clusters, which helps with DR.</div>
+
+  <div class="qa"><b class="q">Q7. Why IMDSv2 with hop limit 1?</b><br>
+  IMDS returns the node role's temporary credentials. IMDSv2 needs a session token (PUT request), which blocks SSRF-style GET attacks. Hop limit 1 means packets from inside a pod network namespace expire before reaching IMDS, so pods must use their own Pod Identity role.</div>
+
+  <div class="qa"><b class="q">Q8. Karpenter vs Cluster Autoscaler?</b><br>
+  Cluster Autoscaler resizes pre-defined Auto Scaling groups, so you pick instance types in advance. Karpenter looks at pending pods and launches the best-fitting, cheapest instance directly through EC2, consolidates underused nodes, and handles spot interruptions. It's usually faster and cheaper.</div>
+
+  <div class="qa"><b class="q">Q9. Why split Terraform into network, eks and platform stacks?</b><br>
+  Smaller blast radius, faster plans, separate locks, and the Helm/Kubernetes providers need a cluster that already exists at plan time. Outputs flow forward through <code>terraform_remote_state</code>.</div>
+
+  <div class="qa"><b class="q">Q10. Something you caught that would have cost money?</b><br>
+  The plan said Kubernetes 1.33, which by November 2026 is in extended support at $0.60/h instead of $0.10/h. I moved to 1.36, set <code>upgrade_policy = STANDARD</code>, and checked the Karpenter compatibility matrix (1.36 needs Karpenter &ge; 1.13; we use 1.15.3).</div>
+</section>
+
+<script>
+  if (location.hash === '#measure') {
+    const h = [...document.querySelectorAll('section.page')].map(e => Math.round(e.getBoundingClientRect().height));
+    document.title = 'H=' + h.join(',');
+  }
+</script>
+</body>
+</html>

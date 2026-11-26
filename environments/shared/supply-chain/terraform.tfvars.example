@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars. Nothing here is secret.
+github_org  = "CHANGE_ME"
+github_repo = "eks-platform-infra"
+# replication_regions = ["eu-central-1"]   # Phase 7

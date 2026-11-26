@@ -1,0 +1,10 @@
+# Shared S3 backend settings for every stack under environments/.
+# Copy to environments/backend.hcl (git-ignored values are not secret, but the file is per account).
+# From a stack folder, e.g. environments/dev/network:
+#   terraform init -backend-config=../../backend.hcl
+# Each stack sets its own `key` in backend.tf.
+bucket       = "eks-platform-tfstate-<ACCOUNT_ID>-ap-south-1" # `terraform output state_bucket` in bootstrap/
+region       = "ap-south-1"
+encrypt      = true
+kms_key_id   = "alias/eks-platform-tfstate"
+use_lockfile = true

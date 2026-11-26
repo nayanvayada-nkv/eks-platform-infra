@@ -1,0 +1,154 @@
+name: backend-image
+
+# Supply chain for apps/backend (top row of docs/architecture.webp):
+#   test -> build -> Trivy gate -> SBOM -> push to ECR by digest -> Cosign sign + SBOM attestation
+#   -> pull request that bumps the digest in gitops/ -> merge -> Argo CD syncs.
+# Pull requests run everything up to the SBOM, without AWS access.
+
+on:
+  pull_request:
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/backend-image.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/backend-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: ap-south-1
+  IMAGE_REPO: eks-platform/backend
+  COSIGN_KEY: awskms:///alias/eks-platform-cosign
+  GITOPS_OVERLAY: gitops/workloads/backend/overlays/dev
+  LOCAL_TAG: backend:ci
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Unit tests
+        working-directory: apps/backend
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+          pytest -q
+
+  build-scan-publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitOps branch
+      pull-requests: write # open the GitOps pull request
+      id-token: write # GitHub OIDC -> AWS (only main can assume the role)
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image (local only)
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/backend
+          load: true
+          push: false
+          tags: ${{ env.LOCAL_TAG }}
+
+      # Security gate: fail on fixable HIGH / CRITICAL vulnerabilities.
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.LOCAL_TAG }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          vuln-type: os,library
+          exit-code: "1"
+          format: table
+
+      - name: Generate SBOM (SPDX)
+        uses: anchore/sbom-action@v0.24.3
+        with:
+          image: ${{ env.LOCAL_TAG }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          artifact-name: backend-sbom.spdx.json
+
+      # ---------------- main branch only from here ----------------
+      - name: Configure AWS credentials (OIDC)
+        if: env.PUBLISH == 'true'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_BUILD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        if: env.PUBLISH == 'true'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push image and resolve digest
+        if: env.PUBLISH == 'true'
+        id: push
+        run: |
+          image="${{ steps.ecr.outputs.registry }}/${IMAGE_REPO}"
+          docker tag "$LOCAL_TAG" "$image:${GITHUB_SHA}"
+          docker push "$image:${GITHUB_SHA}"
+          ref="$(docker inspect --format='{{index .RepoDigests 0}}' "$image:${GITHUB_SHA}")"
+          digest="${ref#*@}"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Pushed $image@$digest" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: sigstore/cosign-installer@v4
+        if: env.PUBLISH == 'true'
+        with:
+          cosign-release: v3.1.4
+
+      # Sign the digest (never a tag). The key stays in KMS.
+      # Legacy signature format keeps Phase 3 verifiers (Kyverno) compatible.
+      - name: Cosign sign + SBOM attestation
+        if: env.PUBLISH == 'true'
+        env:
+          REF: ${{ steps.push.outputs.image }}@${{ steps.push.outputs.digest }}
+        run: |
+          cosign sign --yes --key "$COSIGN_KEY" \
+            --new-bundle-format=false --use-signing-config=false "$REF"
+          cosign attest --yes --key "$COSIGN_KEY" --type spdxjson --predicate sbom.spdx.json \
+            --new-bundle-format=false --use-signing-config=false "$REF"
+          cosign verify --key "$COSIGN_KEY" "$REF" > /dev/null
+          echo "Signed and verified $REF" >> "$GITHUB_STEP_SUMMARY"
+
+      # GitOps: propose the new digest. Merging the PR is the deploy approval.
+      - name: Bump image digest in GitOps overlay
+        if: env.PUBLISH == 'true'
+        working-directory: ${{ env.GITOPS_OVERLAY }}
+        run: kustomize edit set image "backend=${{ steps.push.outputs.image }}@${{ steps.push.outputs.digest }}"
+
+      - name: Open GitOps pull request
+        if: env.PUBLISH == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: gitops/backend-dev
+          commit-message: "deploy(backend): dev -> ${{ steps.push.outputs.digest }}"
+          title: "deploy(backend): dev -> ${{ github.sha }}"
+          body: |
+            Image: `${{ steps.push.outputs.image }}@${{ steps.push.outputs.digest }}`
+            Built from ${{ github.sha }}. Trivy passed, SBOM attached, signed with Cosign (KMS).
+            Merge to deploy: Argo CD syncs `${{ env.GITOPS_OVERLAY }}`.
+          add-paths: ${{ env.GITOPS_OVERLAY }}/kustomization.yaml
+          delete-branch: true
