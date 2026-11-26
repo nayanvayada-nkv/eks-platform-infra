@@ -55,7 +55,9 @@ jobs:
       pull-requests: write # open the GitOps pull request
       id-token: write # GitHub OIDC -> AWS (only main can assume the role)
     env:
-      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+      # Publish only from main, and only once the AWS side exists (variable set after the
+      # supply-chain stack is applied). Before that, main still builds, scans and makes the SBOM.
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.AWS_BUILD_ROLE_ARN != '' }}
     steps:
       - uses: actions/checkout@v7
 
