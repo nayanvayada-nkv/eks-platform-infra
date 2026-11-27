@@ -30,3 +30,5 @@ __pycache__/
 .venv/
 # Reusable modules do not pin providers; only root stacks keep a lock file
 modules/**/.terraform.lock.hcl
+tfplan
+backend.hcl

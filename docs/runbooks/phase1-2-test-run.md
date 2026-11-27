@@ -71,8 +71,8 @@ Before step 9 succeeds, the backend app in Argo CD shows **Degraded** (placehold
 
 1. `kubectl -n argocd delete application root-dev` (removes the backend app and its pods cleanly).
 2. `dev/platform` destroy, then `dev/eks`, then `dev/network`.
-3. Optional: keep `shared/supply-chain` and `bootstrap` (about $2/month for two KMS keys plus cents of S3)
-   so the next run is faster, or destroy them too (`supply-chain` first, `bootstrap` last).
+3. Keep `bootstrap` (never destroyed, see CLAUDE.md) and normally `shared/supply-chain` too
+   (about $2/month for two KMS keys plus cents of S3).
 
 ## If something fails
 
