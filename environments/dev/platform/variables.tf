@@ -52,14 +52,3 @@ variable "gitops_revision" {
   type        = string
   default     = "main"
 }
-
-variable "ingress_allowed_cidrs" {
-  description = "Who may reach the public ALB in front of the Istio ingress gateway, e.g. [\"203.0.113.10/32\"]. Empty = no ALB."
-  type        = list(string)
-  default     = []
-
-  validation {
-    condition     = !contains(var.ingress_allowed_cidrs, "0.0.0.0/0")
-    error_message = "Dev ALB is for your own IP only; open it to the internet only behind CloudFront + WAF (Phase 5)."
-  }
-}

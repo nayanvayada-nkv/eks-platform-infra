@@ -1,2 +1,3 @@
-# Set by the root Application from Terraform (ingress_allowed_cidrs). Never 0.0.0.0/0 in dev.
-allowedCidrs: []
+# Set by the root Application from Terraform (environments/dev/edge outputs).
+targetGroupArn: ""
+albSecurityGroupId: ""

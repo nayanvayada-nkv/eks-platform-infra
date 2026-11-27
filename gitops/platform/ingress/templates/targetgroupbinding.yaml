@@ -1,0 +1,23 @@
+# The AWS Load Balancer Controller keeps the target group's IP list equal to the gateway
+# pod IPs, and opens the node/pod security group only to the ALB's security group, only on
+# the traffic and health-check ports. No Kubernetes object creates a public load balancer.
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: istio-ingress
+spec:
+  targetGroupARN: {{ required "targetGroupArn is required" .Values.targetGroupArn | quote }}
+  targetType: ip
+  serviceRef:
+    name: istio-ingress
+    port: 80
+  networking:
+    ingress:
+      - from:
+          - securityGroup:
+              groupID: {{ required "albSecurityGroupId is required" .Values.albSecurityGroupId | quote }}
+        ports:
+          - protocol: TCP
+            port: 80
+          - protocol: TCP
+            port: 15021 # health checks

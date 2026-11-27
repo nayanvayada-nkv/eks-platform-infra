@@ -7,7 +7,7 @@
 | 2 | (code written) CI/CD and supply chain: GitHub Actions OIDC, SBOM, Trivy, ECR by digest, Cosign, GitOps repo, Argo CD | Signed image deployed by Argo CD |
 | 3 | (code written) Zero Trust in cluster: Istio ambient mTLS + AuthZ, Kyverno image signatures, pod security, NetworkPolicy (secrets moved to Phase 4) | Unsigned image rejected (demo) |
 | 4 | (code written) Data and sample app: Aurora Serverless v2, Valkey, Flask app, HPA, IAM logins, ALB -> Istio gateway | App serving traffic |
-| 5 | Edge and security: Route 53, CloudFront, WAF, Shield, GuardDuty, Security Hub | WAF blocking test traffic |
+| 5 | (code written) Edge and security: CloudFront + WAF + internal ALB (VPC origin), optional Route 53/ACM, Shield Standard, GuardDuty, Security Hub, Config, budget | WAF blocking test traffic |
 | 6 | Observability: Prometheus, Grafana, logs, tracing, alerts, SLOs | Dashboards + alert test |
 | 7 | Multi-region DR: one lean DR region, Aurora Global DB, ECR replication | Failover test with measured RTO / RPO |
 | 8 | Hardening and proof: game day, cost report, README, demo video, blog posts | Public write-ups |

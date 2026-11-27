@@ -26,6 +26,16 @@ data "terraform_remote_state" "data" {
   }
 }
 
+# Phase 5: internal ALB behind CloudFront + WAF.
+data "terraform_remote_state" "edge" {
+  backend = "s3"
+  config = {
+    bucket = local.state_bucket
+    key    = "nonprod/dev/ap-south-1/edge/terraform.tfstate"
+    region = var.aws_region
+  }
+}
+
 locals {
   # Controllers run on the managed system nodes, never on nodes they manage.
   system_node_selector = { "node-role/system" = "true" }

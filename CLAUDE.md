@@ -9,8 +9,8 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
 |---|---|
 | `bootstrap/` | One-time stack: Terraform state bucket, state KMS key, GitHub OIDC provider, plan role. Local state first, then migrated into its own bucket. |
 | `modules/` | Reusable building blocks (`vpc`, `eks`). No backend, no lock file. |
-| `environments/dev/<stack>` | Deployed dev stacks, one state file each: `network` -> `eks` -> `data` -> `platform`. |
-| `environments/shared/<stack>` | Shared, long-lived stacks (`supply-chain`: ECR, Cosign KMS key, build role). |
+| `environments/dev/<stack>` | Deployed dev stacks, one state file each: `network` -> `eks` -> `data` -> `edge` -> `platform`. |
+| `environments/shared/<stack>` | Shared, long-lived stacks (`supply-chain`: ECR, Cosign KMS key, build role; `security`: GuardDuty, Security Hub, Config, alerts, budget). |
 | `gitops/` | What Argo CD deploys: app-of-apps chart (`clusters/dev`), cluster-wide Zero Trust policies (`platform/zero-trust`) and workloads (Kustomize). |
 | `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`). |
 | `docs/` | Roadmap, ADRs, architecture, runbooks, session logs, study guides. |
@@ -30,12 +30,12 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
   Kyverno (`restrict-image-registries`) enforces "our ECR only" for workload namespaces.
 - **Rollback is a Git revert.** Deploys are digest bumps in `gitops/`; reverting the commit makes
   Argo CD sync the previous signed digest. Nobody runs `kubectl apply` or `kubectl rollout undo` by hand.
-- **Security in layers:** network (private subnets, API restricted to one IP, flow logs) -> identity
+- **Security in layers:** edge (CloudFront + WAF, ALB internal only, ADR 0008) -> network (private subnets, API restricted to one IP, flow logs) -> identity
   (GitHub OIDC, access entries, Pod Identity, IMDSv2 hop 1) -> supply chain (Trivy gate, SBOM, Cosign
   signature with a KMS key, deploy by digest) -> cluster (PSA restricted now; Kyverno, Istio,
   NetworkPolicy as code in Phase 3, ADR 0006) -> data (KMS everywhere; apps log in with IAM tokens, no passwords, ADR 0007).
 - **Be honest about status.** Only Phase 0 (bootstrap) has ever been applied to AWS, and that state
-  bucket was later destroyed. Phases 1 to 4 exist as code that passes validate, tflint, Checkov,
+  bucket was later destroyed. Phases 1 to 5 exist as code that passes validate, tflint, Checkov,
   actionlint, tests and Trivy, but they have **not** been applied. Never describe them as running or
   proven until the test run in `docs/runbooks/phase1-2-test-run.md` has succeeded.
 - Never apply, destroy or call AWS without the user's explicit OK for that step (cost).

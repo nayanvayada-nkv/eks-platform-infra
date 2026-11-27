@@ -1,6 +1,7 @@
-# Public entry point (Phase 4): one ALB in front of the Istio ingress gateway.
+# Edge wiring (Phase 5): binds the Istio ingress gateway pods to the internal ALB that the
+# Terraform edge stack created behind CloudFront + WAF.
 apiVersion: v2
 name: edge-ingress
-description: ALB for the Istio ingress gateway
+description: TargetGroupBinding from the internal ALB to the Istio ingress gateway
 type: application
-version: 0.1.0
+version: 0.2.0
