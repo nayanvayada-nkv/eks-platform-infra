@@ -24,6 +24,10 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
   bucket from an earlier teardown; set them back to `false` / `true` before the next bootstrap apply.
 - **Nodes:** a small managed node group (2x t3.medium) runs system pods and Karpenter; Karpenter
   launches app nodes on demand (spot first, CPU limit as the cost guard).
+- **No Docker Hub.** Our images live in our ECR; base images come from ECR Public
+  (`public.ecr.aws/docker/library/...`). Platform charts use their vendors' own registries
+  (registry.istio.io, reg.kyverno.io, public.ecr.aws, registry.k8s.io, quay.io), never docker.io. Apps run on EKS only.
+  Kyverno (`restrict-image-registries`) enforces "our ECR only" for workload namespaces.
 - **Rollback is a Git revert.** Deploys are digest bumps in `gitops/`; reverting the commit makes
   Argo CD sync the previous signed digest. Nobody runs `kubectl apply` or `kubectl rollout undo` by hand.
 - **Security in layers:** network (private subnets, API restricted to one IP, flow logs) -> identity

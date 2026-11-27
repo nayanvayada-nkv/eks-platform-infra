@@ -1,7 +1,10 @@
-# syntax=docker/dockerfile:1
+# Base images come from Amazon ECR Public (the official Docker "python" image, mirrored by AWS),
+# never from Docker Hub: no Docker Hub rate limits, and every image in this project comes from AWS.
+# No "# syntax=" line on purpose: it would pull the BuildKit frontend from Docker Hub.
+ARG BASE_IMAGE=public.ecr.aws/docker/library/python:3.14-slim-trixie
 
 # ---- build stage: install dependencies into a virtualenv ----
-FROM python:3.14-slim-trixie AS build
+FROM ${BASE_IMAGE} AS build
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 RUN python -m venv /venv
 COPY requirements.txt .
@@ -9,7 +12,7 @@ RUN /venv/bin/pip install -r requirements.txt \
  && /venv/bin/pip uninstall -y pip
 
 # ---- runtime stage: no compilers, no pip, non-root ----
-FROM python:3.14-slim-trixie
+FROM ${BASE_IMAGE}
 ENV PATH="/venv/bin:$PATH" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 # Apply Debian security fixes released after the base image was built, and drop pip:
 # the app never installs packages at runtime, and pip vendors its own (often vulnerable) libraries.
