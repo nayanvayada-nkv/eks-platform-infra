@@ -6,7 +6,7 @@ caught, a glossary and self-test questions. Dashed **Evidence** boxes are filled
 
 | PDF | Topic |
 |---|---|
-| [00-architecture](pdf/00-architecture.pdf) | All diagrams with plain explanations (start here) |
+| [00-architecture](pdf/00-architecture.pdf) | Full architecture on one landscape page + all diagrams explained (start here) |
 | [01-foundation-network-eks](pdf/01-foundation-network-eks.pdf) | Phase 0 + 1: state, OIDC, VPC, EKS, Karpenter, Pod Identity |
 | [02-supply-chain](pdf/02-supply-chain.pdf) | Phase 2: Trivy, SBOM, Cosign + KMS, GitOps, Argo CD |
 | [03-zero-trust-cluster](pdf/03-zero-trust-cluster.pdf) | Phase 3: Kyverno, Istio ambient, NetworkPolicy |
@@ -24,3 +24,5 @@ The older [Phase 1 guide](Phase1-InDepth-Guide.pdf) is kept; `01-foundation-netw
 
 Rebuild after editing `src/*.md` or `src/diagram_specs.py`:
 `pip install markdown` then `scripts/render-guides.sh [name ...]` (Chrome headless).
+
+Full architecture image: [../architecture-full.png](../architecture-full.png) (high resolution) and [../architecture-full.svg](../architecture-full.svg) (zoom without blur).

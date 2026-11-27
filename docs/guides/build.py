@@ -60,6 +60,9 @@ th { background:var(--grey); } tr { break-inside:avoid; }
 .diagram svg { width:100%; height:auto; display:block; }
 .diagram .cap { font-size:8.6pt; color:var(--muted); margin:3px 4px 0; }
 .pagebreak { break-after:page; }
+@page landscape { size: A4 landscape; margin: 7mm; }
+.landscape { page: landscape; break-after: page; }
+.landscape .diagram { border:none; padding:0; margin:0; }
 .cover { border-bottom:3px solid var(--navy); padding-bottom:6px; margin-bottom:8px; }
 .foot { margin-top:14px; font-size:8.5pt; color:var(--muted); border-top:1px solid var(--line); padding-top:4px; }
 """

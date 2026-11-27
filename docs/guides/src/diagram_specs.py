@@ -246,3 +246,115 @@ def quickcart():
     }
     A = [("app", "cat"), ("app", "sup"), ("app", "pay"), ("cat", "plat"), ("sup", "plat"), ("pay", "plat")]
     return boxes(I, A, h=210), "QuickCart: the fictional shopping + food delivery app used as the running example in every guide."
+
+
+@diagram
+def arch_full():
+    I = {
+        # outside AWS (left column)
+        "dev": (20, 20, 250, 56, "Developer", "pull request to GitHub", "grey"),
+        "repo": (20, 120, 250, 64, "GitHub repo (main)", "Terraform, gitops/, apps/", "grey"),
+        "gha": (20, 230, 250, 70, "GitHub Actions", "test, Trivy, SBOM, Cosign sign, GitOps PR", "grey"),
+        "oidc": (20, 350, 250, 60, "GitHub OIDC", "no stored AWS keys", "purple"),
+        "tfstate": (20, 460, 250, 70, "Terraform state", "S3 bucket + KMS, never destroyed", "grey"),
+        # edge (global)
+        "users": (560, 20, 190, 56, "Shoppers / support agents", "browser, phone", "grey"),
+        "r53": (800, 20, 170, 56, "Route 53 + ACM", "optional custom domain", "amber"),
+        "cf": (1010, 20, 210, 56, "CloudFront", "HTTPS, security headers", "amber"),
+        "waf": (1270, 20, 230, 56, "AWS WAF (us-east-1)", "OWASP, Log4j, SQLi, rate limit", "red"),
+        # Mumbai regional services
+        "ecr": (330, 165, 140, 64, "Amazon ECR", "signed images by digest", "blue"),
+        "kms": (475, 165, 140, 64, "AWS KMS", "Cosign, data, EKS keys", "purple"),
+        "sm": (620, 165, 140, 64, "Secrets Manager", "DB admin secret", "purple"),
+        "bedrock": (765, 165, 140, 64, "Amazon Bedrock", "Titan + Claude", "purple"),
+        "amp": (910, 165, 140, 64, "Managed Prometheus", "rules + Alertmanager", "green"),
+        "grafana": (1055, 165, 140, 64, "Managed Grafana", "Identity Center login", "green"),
+        "cwx": (475, 245, 140, 56, "CloudWatch + X-Ray", "logs, traces", "green"),
+        "sns": (1055, 245, 140, 56, "SNS -> email", "SLO + security alerts", "red"),
+        # VPC
+        "nat": (345, 375, 150, 56, "NAT gateway", "public subnet", "amber"),
+        "vo": (345, 450, 150, 64, "CloudFront VPC origin", "ENIs in private subnets", "amber"),
+        "alb": (345, 545, 150, 64, "Internal ALB", "no public address", "amber"),
+        "vpce": (345, 645, 150, 110, "VPC endpoints", "S3, Secrets Manager, bedrock-runtime, bedrock-mantle", "blue"),
+        # EKS (three columns with gaps at x 705-725 and 890-910 for arrows)
+        "gw": (540, 395, 165, 64, "Istio ingress gateway", "ns istio-ingress", "blue"),
+        "be": (725, 395, 165, 64, "Backend API pods", "ns backend, HPA, mTLS", "green"),
+        "mig": (910, 395, 160, 64, "db-migrate Job", "Argo CD sync hook", "green"),
+        "kyv": (540, 485, 165, 64, "Kyverno", "signed images only", "red"),
+        "istio": (725, 485, 165, 64, "istiod + ztunnel + CNI", "ambient mTLS", "blue"),
+        "argo": (910, 485, 160, 64, "Argo CD", "app of apps, waves", "purple"),
+        "prom": (540, 575, 165, 64, "Prometheus + ADOT", "ns monitoring", "green"),
+        "fb": (725, 575, 165, 64, "Fluent Bit", "ns logging", "green"),
+        "ks": (910, 575, 160, 64, "Karpenter, LB ctrl", "CoreDNS (kube-system)", "navy"),
+        "sys": (540, 665, 165, 56, "System nodes", "2x t3.medium, IMDSv2 hop 1", "grey"),
+        "spot": (725, 665, 165, 56, "Karpenter nodes", "spot first, 16 vCPU cap", "grey"),
+        "addons": (910, 665, 160, 56, "EKS add-ons", "VPC CNI, Pod Identity, EBS", "grey"),
+        # data
+        "aurora": (540, 765, 340, 64, "Aurora PostgreSQL Serverless v2", "IAM login, pgvector, row-level security, KMS", "navy"),
+        "valkey": (895, 765, 175, 64, "Valkey Serverless", "IAM login, TLS, KMS", "navy"),
+        # DR
+        "dr_aur": (1240, 400, 330, 64, "Aurora secondary (headless)", "Global Database, < 1 s lag", "red"),
+        "dr_ecr": (1240, 480, 330, 56, "ECR replica", "images + Cosign signatures", "red"),
+        "dr_kms": (1240, 550, 330, 56, "KMS replica keys + secret replica", "verify and decrypt without Mumbai", "red"),
+        "dr_eks": (1240, 620, 330, 64, "EKS + platform built on demand", "same Terraform, dr workspace", "red"),
+        # account security
+        "gd": (1240, 745, 160, 56, "GuardDuty", "EKS audit logs", "red"),
+        "sh": (1410, 745, 160, 56, "Security Hub", "AWS best practices", "red"),
+        "cfg": (1240, 815, 160, 56, "AWS Config", "daily recording", "grey"),
+        "bud": (1410, 815, 160, 56, "Budget $10", "email at 80%", "grey"),
+    }
+    A = [
+        ("users", "r53"), ("r53", "cf"), ("cf", "waf", "inspect"),
+        ("dev", "repo"), ("repo", "gha"), ("gha", "oidc", "assume role"),
+        ("vo", "alb"), ("alb", "gw"), ("gw", "be"), ("mig", "argo"),
+        ("amp", "grafana"), ("amp", "sns"),
+    ]
+    G = [
+        (305, 130, 910, 770, "AWS Mumbai (ap-south-1): primary", "green"),
+        (325, 335, 885, 550, "VPC 10.20.0.0/16 (private subnets in 3 AZs)", "blue"),
+        (520, 372, 570, 362, "Amazon EKS 1.36", "navy"),
+        (1225, 370, 360, 330, "AWS Frankfurt (eu-central-1): DR pilot light", "red"),
+        (1225, 715, 360, 175, "Account security (shared/security)", "red"),
+    ]
+    svg = boxes(I, A, w=1600, h=910, groups=G)
+
+    def path(d, color, dashed=False, width=2, arrow=True):
+        dash = ' stroke-dasharray="6 4"' if dashed else ""
+        end = ' marker-end="url(#a)"' if arrow else ""
+        return f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{width}"{dash}{end}/>'
+
+    def text(x, y, t, color, rotate=False, anchor="middle"):
+        rot = f' transform="rotate(-90 {x} {y})"' if rotate else ""
+        return f'<text x="{x}" y="{y}" font-size="10.5" fill="{color}" text-anchor="{anchor}"{rot}>{t}</text>'
+
+    extra = "".join([
+        # viewer traffic
+        path("M1115,76 V110 H296 V482 H343", "#a35b00"),
+        text(700, 104, "viewer traffic: CloudFront -> VPC origin -> internal ALB -> gateway -> pods", "#a35b00"),
+        # CI pushes and signs
+        path("M270,265 H400 V231", "#2457a6"),
+        text(345, 259, "push + sign", "#2457a6"),
+        # Argo CD pulls Git
+        path("M270,150 H286 V322 H1080 V517 H1072", "#6a3fb0", dashed=True),
+        text(820, 346, "Argo CD pulls Git (CI never touches the cluster)", "#6a3fb0"),
+        # private AWS APIs through VPC endpoints
+        path("M420,645 V632 H318 V309 H690 V231", "#2457a6", dashed=True, width=1.6),
+        path("M690,309 H835 V231", "#2457a6", dashed=True, width=1.6),
+        text(311, 520, "private AWS APIs via VPC endpoints", "#2457a6", rotate=True),
+        # backend to endpoints and data
+        path("M725,447 H711 V745 H497", "#2457a6", width=1.6),
+        path("M725,430 H718 V763", "#1b2430", width=1.6),
+        path("M890,430 H900 V763", "#1b2430", width=1.6),
+        text(760, 755, "IAM token", "#1b2430"),
+        # metrics to AMP
+        path("M540,607 H530 V360 H980 V231", "#1f7a4d", width=1.6),
+        text(985, 300, "metrics", "#1f7a4d", anchor="start"),
+        # replication to Frankfurt
+        path("M455,165 V157 H1216 V508 H1238", "#b3261e", dashed=True, width=1.6),
+        text(840, 153, "ECR images + signatures, KMS keys, admin secret replicated to Frankfurt", "#b3261e"),
+        path("M710,829 V862 H1221 V432 H1238", "#b3261e", dashed=True, width=1.8),
+        text(960, 857, "Aurora Global Database replication", "#b3261e"),
+    ])
+    svg = svg.replace("</svg>", extra + "</svg>")
+    return svg, ("Full architecture as built in code: global edge (top), Mumbai primary (centre), CI/CD and state "
+                 "(left), Frankfurt DR and account security (right). Solid = traffic or calls, dashed = replication, GitOps pull, private APIs.")

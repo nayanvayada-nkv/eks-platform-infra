@@ -41,3 +41,4 @@ loadtest/results/
 
 # Generated guide HTML (PDFs are committed)
 docs/guides/html/
+docs/guides/eks-platform-guides.zip

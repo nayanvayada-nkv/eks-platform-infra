@@ -6,6 +6,12 @@ Read this first; the phase guides go deep on each box.</p>
 <span class="status">Written and validated as code &middot; not yet run on AWS &middot; evidence added after the run</span>
 </div>
 
+<div class="landscape" markdown>
+## The full architecture (one page)
+
+[[diagram:arch_full]]
+</div>
+
 ## How to read these guides
 
 Each guide uses the same building blocks:
