@@ -1,0 +1,6 @@
+# Public entry point (Phase 4): one ALB in front of the Istio ingress gateway.
+apiVersion: v2
+name: edge-ingress
+description: ALB for the Istio ingress gateway
+type: application
+version: 0.1.0

@@ -1,0 +1,29 @@
+# The shared ingress gateway (namespace istio-ingress) listens on port 80 for this app.
+# TLS terminates at the ALB/CloudFront in Phase 5; gateway -> backend is mTLS (HBONE) already.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: backend
+spec:
+  selector:
+    istio: ingress
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts: ["*"] # a real hostname comes with Route 53 in Phase 5
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: backend
+spec:
+  hosts: ["*"]
+  gateways: [backend]
+  http:
+    - route:
+        - destination:
+            host: backend.backend.svc.cluster.local
+            port:
+              number: 80

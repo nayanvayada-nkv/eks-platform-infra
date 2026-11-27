@@ -1,7 +1,7 @@
-# Runbook: test run of Phases 1 + 2 + 3 (dev, Mumbai)
+# Runbook: test run of Phases 1 to 4 (dev, Mumbai)
 
 Goal: prove the roadmap deliverables, "cluster up, cost noted" (Phase 1), "signed image deployed by
-Argo CD" (Phase 2) and "unsigned image rejected" (Phase 3), then destroy. Expected time 3 to 4 hours, expected cost about **$2**.
+Argo CD" (Phase 2), "unsigned image rejected" (Phase 3) and "app serving traffic" (Phase 4), then destroy. Expected time 3 to 4 hours, expected cost about **$2**.
 
 **Rule:** nothing is applied without your OK. Steps marked **[You]** are done by you in a browser or
 terminal; steps marked **[Claude]** I run after you say go.
@@ -47,12 +47,14 @@ logs, EKS module defaulted the API to 0.0.0.0/0, one unused variable.
 | 5 | **You** | GitHub > Settings > Secrets and variables > Actions > **Variables**: add `AWS_BUILD_ROLE_ARN` (from step 4) and `AWS_PLAN_ROLE_ARN` (from step 2) | 2 min | both listed |
 | 6 | Claude | `dev/network`: plan, apply (VPC, NAT, flow logs) | 3 min | 6 subnets |
 | 7 | Claude | `dev/eks`: plan, apply (cluster, nodes, add-ons, IAM) | 15 to 20 min | `kubectl get nodes` shows 2 Ready |
+| 7b | Claude | `dev/data`: plan, apply (Aurora Serverless v2, Valkey serverless, data KMS key, Pod Identity roles) | 10 to 15 min | outputs show `backend_config` |
 | 8 | Claude | `dev/platform`: plan, apply (LB controller, metrics-server, Karpenter, Argo CD, root app). Argo CD then installs Kyverno, Istio ambient and the zero-trust policies in waves | 10 to 15 min | `kubectl -n argocd get applications`: kyverno, istio-*, ztunnel, zero-trust Healthy |
 | 9 | Both | Trigger the pipeline: merge a change under `apps/backend/` to `main` (or run it from the Actions tab) | 5 min | all steps green, image in ECR |
 | 10 | **You** | Merge the pull request "deploy(backend): dev -> ..." that the pipeline opens | 1 min | PR merged |
 | 11 | Claude | Watch Argo CD sync; `cosign verify` the running digest | 3 min | backend pods Running with `@sha256:` image |
 | 12 | Claude | Karpenter test: scale backend to 10 replicas | 3 min | a new spot node appears, then goes after scale-down |
 | 12b | Claude | Phase 3 demos (section below) | 15 min | each denial message matches |
+| 12c | Claude | Phase 4 check (section below) | 10 min | items saved in Aurora, second read from Valkey |
 | 13 | You | Screenshots (list below) | 15 min | |
 | 14 | Claude | Destroy, after your OK (order below) | 15 to 20 min | `terraform state list` empty per stack |
 
@@ -83,6 +85,19 @@ image (wrong registry, unsigned). That is expected, and is already a first Phase
 
 Clean up: `kubectl delete -f docs/runbooks/phase3-demo-client.yaml`.
 
+## Phase 4 check (step 12c)
+
+```bash
+ALB=$(kubectl -n istio-ingress get ingress edge -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+curl -s "http://$ALB/items" -X POST -H 'content-type: application/json' -d '{"name":"first"}'
+curl -s "http://$ALB/items"   # "source": "database"
+curl -s "http://$ALB/items"   # "source": "cache" (Valkey, 30 s)
+kubectl -n backend logs job/db-migrate   # "role app uses IAM authentication"
+```
+
+The first request after Aurora was idle takes ~15 s (resume from 0 ACU). If pods stay not-ready,
+check `kubectl -n backend logs deploy/backend` for the IAM token or TLS error.
+
 ## Screenshots for your portfolio
 
 1. `kubectl get nodes -o wide` (system + Karpenter spot node).
@@ -97,7 +112,7 @@ Clean up: `kubectl delete -f docs/runbooks/phase3-demo-client.yaml`.
 ## Destroy order
 
 1. `kubectl -n argocd delete application root-dev` (removes the backend app and its pods cleanly).
-2. `dev/platform` destroy, then `dev/eks`, then `dev/network`.
+2. `dev/platform` destroy, then `dev/data`, then `dev/eks`, then `dev/network` (`scripts/destroy-dev.sh` does this order).
 3. Keep `bootstrap` (never destroyed, see CLAUDE.md) and normally `shared/supply-chain` too
    (about $2/month for two KMS keys plus cents of S3).
 

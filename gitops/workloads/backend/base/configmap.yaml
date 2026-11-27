@@ -1,0 +1,19 @@
+# Connection settings (no secrets). Argo CD replaces "data" with the real values from the
+# Terraform data stack (environments/dev/data -> platform -> root app -> backend app).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2" # before the db-migrate job (wave -1)
+data:
+  AWS_REGION: ap-south-1
+  DB_HOST: set-by-argocd
+  DB_PORT: "5432"
+  DB_NAME: app
+  DB_USER: app
+  DB_ADMIN_SECRET: set-by-argocd
+  CACHE_HOST: set-by-argocd
+  CACHE_PORT: "6379"
+  CACHE_NAME: set-by-argocd
+  CACHE_USER: set-by-argocd

@@ -6,7 +6,7 @@ Infrastructure as code for a secure, multi-region Kubernetes platform on AWS.
 through Argo CD (GitOps), and only admits container images that are scanned, signed and verified.
 Mumbai is primary, with a lean active-passive DR region.
 
-**Status:** Phases 1, 2 and 3 written and validated, not applied yet. Diagram and per-box status: [docs/architecture.md](docs/architecture.md). See [docs/roadmap.md](docs/roadmap.md).
+**Status:** Phases 1 to 4 written and validated, not applied yet. Diagram and per-box status: [docs/architecture.md](docs/architecture.md). See [docs/roadmap.md](docs/roadmap.md).
 
 ## Repo layout
 

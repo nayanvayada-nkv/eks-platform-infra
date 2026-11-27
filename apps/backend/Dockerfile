@@ -23,7 +23,8 @@ RUN apt-get update \
  && useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 COPY --from=build /venv /venv
 WORKDIR /app
-COPY app.py .
+COPY app.py store.py aws_auth.py migrate.py ./
+COPY certs/ certs/
 USER 10001
 EXPOSE 8080
 # /tmp is an emptyDir in Kubernetes so the root filesystem can stay read-only.

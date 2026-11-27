@@ -3,6 +3,10 @@ repoURL: ""
 targetRevision: main
 awsAccountId: ""
 awsRegion: ap-south-1
+# From the Terraform data stack (Aurora / Valkey endpoints, no secrets). Empty = placeholders.
+backendConfig: {}
+# Who may reach the public ALB (your IP /32). Set by Terraform; empty = no ALB is created.
+ingressAllowedCidrs: []
 
 # Phase 3 platform components, installed by Argo CD in sync-wave order.
 versions:
@@ -17,3 +21,4 @@ systemNamespaces:
   - argocd
   - kyverno
   - istio-system
+  - istio-ingress # vendor gateway image; reached only through the ALB

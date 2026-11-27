@@ -1,0 +1,7 @@
+# Database setup Job and its own identity. Kept out of ../base so the Job pods do not get
+# the backend's labels (the Deployment's Service and HPA select on those).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - serviceaccount.yaml
+  - job.yaml

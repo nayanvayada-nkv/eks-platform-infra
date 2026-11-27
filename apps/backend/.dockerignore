@@ -1,5 +1,5 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-test_app.py
+test_*.py
 requirements-dev.txt

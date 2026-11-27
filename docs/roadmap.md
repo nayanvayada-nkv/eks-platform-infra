@@ -6,7 +6,7 @@
 | 1 | (code written) VPC + EKS in Mumbai (dev only): Karpenter, Pod Identity (IRSA available), ALB controller | Cluster up, cost noted |
 | 2 | (code written) CI/CD and supply chain: GitHub Actions OIDC, SBOM, Trivy, ECR by digest, Cosign, GitOps repo, Argo CD | Signed image deployed by Argo CD |
 | 3 | (code written) Zero Trust in cluster: Istio ambient mTLS + AuthZ, Kyverno image signatures, pod security, NetworkPolicy (secrets moved to Phase 4) | Unsigned image rejected (demo) |
-| 4 | Data and sample app: Aurora, Redis, Flask app, HPA | App serving traffic |
+| 4 | (code written) Data and sample app: Aurora Serverless v2, Valkey, Flask app, HPA, IAM logins, ALB -> Istio gateway | App serving traffic |
 | 5 | Edge and security: Route 53, CloudFront, WAF, Shield, GuardDuty, Security Hub | WAF blocking test traffic |
 | 6 | Observability: Prometheus, Grafana, logs, tracing, alerts, SLOs | Dashboards + alert test |
 | 7 | Multi-region DR: one lean DR region, Aurora Global DB, ECR replication | Failover test with measured RTO / RPO |

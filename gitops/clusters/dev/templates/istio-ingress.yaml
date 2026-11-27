@@ -1,0 +1,69 @@
+{{- /*
+Istio ingress gateway: the single entry point into the mesh. The ALB (gitops/platform/ingress)
+sends traffic here; the gateway talks mTLS to the backend. Its service account
+"istio-ingress" is the identity the backend's AuthorizationPolicy allows.
+*/ -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-ingress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1" # after istiod (it injects the gateway's proxy)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: gateway
+    targetRevision: {{ .Values.versions.istio | quote }}
+    helm:
+      releaseName: istio-ingress
+      valuesObject:
+        service:
+          type: ClusterIP # the ALB targets pod IPs directly; no extra AWS load balancer
+        autoscaling:
+          minReplicas: 1 # dev
+          maxReplicas: 3
+        resources:
+          requests: { cpu: 100m, memory: 128Mi }
+          limits: { memory: 512Mi }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-ingress
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+{{- if .Values.ingressAllowedCidrs }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: edge-ingress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io # deleting the app deletes the ALB
+spec:
+  project: default
+  source:
+    repoURL: {{ required "repoURL is required" .Values.repoURL | quote }}
+    targetRevision: {{ .Values.targetRevision | quote }}
+    path: gitops/platform/ingress
+    helm:
+      valuesObject:
+        allowedCidrs:
+          {{- toYaml .Values.ingressAllowedCidrs | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-ingress
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+{{- end }}
