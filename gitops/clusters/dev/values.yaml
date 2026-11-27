@@ -3,6 +3,8 @@ repoURL: ""
 targetRevision: main
 awsAccountId: ""
 awsRegion: ap-south-1
+# Where CI pushes and the main cluster runs. Any other awsRegion is the DR copy (Phase 7).
+homeRegion: ap-south-1
 # From the Terraform data stack (Aurora / Valkey endpoints, no secrets). Empty = placeholders.
 backendConfig: {}
 # Internal ALB behind CloudFront (Terraform edge stack). Empty = gateway not exposed.

@@ -3,6 +3,12 @@ variable "aws_region" {
   default = "ap-south-1"
 }
 
+variable "state_region" {
+  description = "Region of the Terraform state bucket (Mumbai), also when this stack runs in the dr workspace."
+  type        = string
+  default     = "ap-south-1"
+}
+
 variable "project" {
   type    = string
   default = "eks-platform"
@@ -51,4 +57,33 @@ variable "app_db_user" {
 variable "app_namespace" {
   type    = string
   default = "backend"
+}
+
+variable "role" {
+  description = "primary = Mumbai writer (default workspace). secondary = Frankfurt DR copy of the Aurora global database (dr workspace)."
+  type        = string
+  default     = "primary"
+
+  validation {
+    condition     = contains(["primary", "secondary"], var.role)
+    error_message = "role must be primary or secondary."
+  }
+}
+
+variable "dr_region" {
+  description = "Primary only. A DR region (e.g. eu-central-1) turns the cluster into an Aurora Global Database, replicates the admin secret and the data key there. Empty = single region."
+  type        = string
+  default     = ""
+}
+
+variable "dr_instances" {
+  description = "Secondary only. 0 = headless pilot light (storage replicated, no compute, cheapest). 1 = a reader that can take over as writer."
+  type        = number
+  default     = 0
+}
+
+variable "admin_password_version" {
+  description = "Bump to generate and write a new Aurora admin password (it is never stored in Terraform state)."
+  type        = number
+  default     = 1
 }

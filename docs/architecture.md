@@ -13,7 +13,7 @@ run it yourself.
 | **CI/CD:** Developer, signed commits, branch protection | 2 | Planned | GitHub settings, `.github/` |
 | GitHub Actions: OIDC to AWS, code scans | 0 / 2 | Plan role + static checks built | `bootstrap/`, `.github/workflows/terraform-checks.yml` |
 | Build image + SBOM, Trivy (fail on HIGH/CRITICAL) | 2 | Built | `.github/workflows/backend-image.yml`, `apps/backend` |
-| Push to ECR by digest, replicated to DR | 2 / 7 | Built (replication off until Phase 7) | `environments/shared/supply-chain` |
+| Push to ECR by digest, replicated to DR | 2 / 7 | Built (replication + Cosign key replica switched on for the drill) | `environments/shared/supply-chain` |
 | Cosign sign the digest | 2 | Built (KMS key, sign + SBOM attestation) | workflow + `supply-chain/signing.tf`, ADR 0005 |
 | GitOps repo bump digest, Argo CD pull | 2 | Built (digest bump as a PR) | `gitops/`, `environments/dev/platform/argocd.tf` |
 | **Users:** India, global, mobile | 4 / 5 | n/a (traffic) | n/a |
@@ -34,8 +34,8 @@ run it yourself.
 | Aurora MySQL | 4 | Planned | `modules/aurora` |
 | Redis cache | 4 | Planned | `modules/redis` |
 | Observability: Prometheus, Alertmanager, Grafana, OpenSearch, Tempo/Jaeger | 6 | Planned | `gitops/` |
-| Germany (DR) and US (DR) regions, pilot light | 7 | Planned | `environments/dr-*` |
-| Aurora Global Database (Mumbai writer, DR readers) | 7 | Planned | `modules/aurora` |
+| Germany (DR) region, pilot light (US dropped, ADR 0010) | 7 | Built as code, not applied | `environments/dev/*` in the `dr` workspace, `scripts/up-dr.sh` |
+| Aurora Global Database (Mumbai writer, Frankfurt headless secondary) | 7 | Built as code, not applied | `environments/dev/data`, `scripts/dr-drill.sh` |
 | Vector DB / RAG | 9 | In scope, to be built (decided 22 Nov 2026) | option open: pgvector / OpenSearch / Qdrant |
 
 ## Open decision: one or two DR regions

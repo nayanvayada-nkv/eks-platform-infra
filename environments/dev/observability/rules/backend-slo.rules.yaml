@@ -11,7 +11,7 @@ groups:
       - record: slo:backend_requests:rate5m
         expr: sum(rate(http_requests_total{namespace="backend"}[5m]))
       - record: slo:backend_errors:ratio_rate5m
-        expr: sum(rate(http_requests_total{namespace="backend",status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="backend"}[5m]))
+        expr: sum(rate(http_requests_total{names pace="backend",status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="backend"}[5m]))
       - record: slo:backend_errors:ratio_rate30m
         expr: sum(rate(http_requests_total{namespace="backend",status=~"5.."}[30m])) / sum(rate(http_requests_total{namespace="backend"}[30m]))
       - record: slo:backend_errors:ratio_rate1h

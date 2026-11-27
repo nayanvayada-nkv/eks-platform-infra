@@ -1,0 +1,8 @@
+# Frankfurt DR (Phase 7): exactly the Mumbai overlay, same signed digest. Argo CD adds one
+# image override (gitops/clusters/dev/templates/backend.yaml) that swaps only the registry
+# to the DR region's ECR replica. Layering keeps the @sha256 digest; overriding the image
+# in ../dev directly would drop it (tested), and Kyverno would then refuse the pods.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../dev

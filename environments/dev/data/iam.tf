@@ -4,6 +4,13 @@
 #   db-migrate : read the Aurora admin secret once per deploy to create the "app" role and tables.
 # The running API never sees the admin password.
 # ---------------------------------------------------------------------------
+locals {
+  # Mumbai reads the secret it created; Frankfurt reads the replica (same name, its region),
+  # decrypted with the replica of the data key.
+  admin_secret_arn     = local.is_primary ? aws_secretsmanager_secret.admin[0].arn : replace(local.primary.admin_secret_arn, ":${var.state_region}:", ":${var.aws_region}:")
+  admin_secret_key_arn = local.is_primary ? aws_kms_key.data.arn : local.primary.data_key_dr_replica_arn
+}
+
 data "aws_iam_policy_document" "pod_identity_assume" {
   statement {
     actions = ["sts:AssumeRole", "sts:TagSession"]
@@ -18,7 +25,7 @@ data "aws_iam_policy_document" "backend" {
   statement {
     sid       = "AuroraIamLogin"
     actions   = ["rds-db:connect"]
-    resources = ["arn:aws:rds-db:${var.aws_region}:${local.account_id}:dbuser:${aws_rds_cluster.this.cluster_resource_id}/${var.app_db_user}"]
+    resources = ["arn:aws:rds-db:${var.aws_region}:${local.account_id}:dbuser:${local.cluster.cluster_resource_id}/${var.app_db_user}"]
   }
 
   statement {
@@ -50,14 +57,14 @@ data "aws_iam_policy_document" "db_migrate" {
   statement {
     sid       = "ReadAdminSecret"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_rds_cluster.this.master_user_secret[0].secret_arn]
+    resources = [local.admin_secret_arn]
   }
 
   # Decrypt only when Secrets Manager asks on our behalf, not raw KMS calls.
   statement {
     sid       = "DecryptAdminSecret"
     actions   = ["kms:Decrypt"]
-    resources = [aws_kms_key.data.arn]
+    resources = [local.admin_secret_key_arn]
     condition {
       test     = "StringEquals"
       variable = "kms:ViaService"

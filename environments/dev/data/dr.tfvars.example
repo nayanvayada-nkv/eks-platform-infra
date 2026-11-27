@@ -1,0 +1,5 @@
+# Copy to dr.tfvars (git-ignored); used when WORKSPACE=dr (scripts/tf.sh adds -var-file).
+aws_region   = "eu-central-1"
+environment  = "dr"
+role         = "secondary"
+dr_instances = 0 # headless pilot light; the drill sets 1 before switchover

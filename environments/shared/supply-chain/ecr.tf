@@ -84,3 +84,22 @@ resource "aws_ecr_replication_configuration" "this" {
     }
   }
 }
+
+# Repositories that replication creates in the DR region get the same protections as the
+# originals (otherwise they would be created with mutable tags and no scanning).
+resource "aws_ecr_repository_creation_template" "replication" {
+  count                = length(var.replication_regions) > 0 ? 1 : 0
+  prefix               = var.project
+  description          = "Settings for replicated ${var.project}/* repositories in DR regions"
+  applied_for          = ["REPLICATION"]
+  image_tag_mutability = "IMMUTABLE_WITH_EXCLUSION"
+
+  image_tag_mutability_exclusion_filter {
+    filter      = "sha256-*" # Cosign signature / attestation tags
+    filter_type = "WILDCARD"
+  }
+
+  encryption_configuration {
+    encryption_type = "KMS"
+  }
+}
