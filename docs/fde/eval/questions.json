@@ -1,0 +1,12 @@
+[
+  {"q": "How many days does a customer have to file a claim for a damaged parcel delivered to their door?", "expect_all": ["7"], "source": "sop-damaged-parcel-claims"},
+  {"q": "What evidence is needed for a damage claim?", "expect_all": ["photo", "invoice", "tracking"], "source": "sop-damaged-parcel-claims"},
+  {"q": "Can an agent promise a refund before the claims team approves a damage claim?", "expect_any": ["not", "no"], "source": "sop-damaged-parcel-claims"},
+  {"q": "What shipping credit does a customer get after 5 days of a delay caused by Kestrel?", "expect_all": ["25"], "source": "sop-delivery-delays"},
+  {"q": "Is a credit given when a delay is caused by a customs hold?", "expect_any": ["no", "not"], "source": "sop-delivery-delays"},
+  {"q": "Within how many working days must the receiver upload documents for a customs hold?", "expect_all": ["3"], "source": "sop-customs-holds"},
+  {"q": "Should an agent estimate the customs duty amount for a customer?", "expect_any": ["not", "never", "no"], "source": "sop-customs-holds"},
+  {"q": "What is the fee for cancelling a booking after pickup but before it leaves the origin hub?", "expect_all": ["150"], "source": "sop-refunds"},
+  {"q": "How long do refunds for cancelled bookings take?", "expect_all": ["5", "7"], "source": "sop-refunds"},
+  {"q": "What is Kestrel's policy on drone delivery?", "expect_not_found": true}
+]

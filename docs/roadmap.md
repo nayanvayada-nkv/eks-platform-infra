@@ -12,6 +12,6 @@
 | 7 | (code written) Multi-region DR: Frankfurt pilot light (same stacks in a `dr` workspace), Aurora Global DB, ECR + Cosign key replication, drill script | Failover test with measured RTO / RPO |
 | 8 | Hardening and proof: game day, cost report, README, demo video, blog posts | Public write-ups |
 | 9 | (code written) Vector DB + RAG: pgvector on Aurora (HNSW, row-level security per tenant), Titan embeddings + Claude on Amazon Bedrock with citations, tenants onboarded by Git PR | Working RAG query on the platform, cost noted |
-| FDE | Forward Deployed Engineer track (runs alongside phases 4 to 9, meaning to confirm): customer problem statement, discovery notes, onboard a "customer" tenant, customer-facing RAG use case, demo + runbook + handover | Customer-style demo and write-up |
+| FDE | (written) Forward Deployed Engineer track, customer-facing: fictional customer Kestrel Logistics on the RAG API, problem statement, discovery, design, onboarding by PR, demo script, eval set (90% go-live bar), handover, pilot report (docs/fde) | Customer-style demo and write-up |
 
 Cost rule: dev only in Mumbai first. Treat Phase 7 as a temporary demo: build, test, record, destroy.
