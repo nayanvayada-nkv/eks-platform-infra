@@ -15,9 +15,9 @@ jobs:
   static-checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: 1.15.8
 
@@ -34,7 +34,7 @@ jobs:
             echo "::endgroup::"
           done
 
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4
 
       - name: tflint
         run: |
@@ -42,12 +42,12 @@ jobs:
           tflint --recursive --config="$GITHUB_WORKSPACE/.tflint.hcl"
 
       - name: checkov
-        uses: bridgecrewio/checkov-action@v12
+        uses: bridgecrewio/checkov-action@b782b35c8411ff565b881fba67ceebdb426d7dc4 # v12
         with:
           directory: .
           framework: terraform
           quiet: true
-          soft_fail: true # switch to false once findings are triaged
+          soft_fail: false # all findings fixed or skipped with a written reason (Phase 8)
 
   # Phase 1: add a `plan` job here that assumes vars.AWS_PLAN_ROLE_ARN via OIDC
   # (permissions: id-token: write) and runs terraform plan per changed stack.

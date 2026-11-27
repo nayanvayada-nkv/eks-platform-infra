@@ -17,3 +17,14 @@ variable "vpc_cidr" {
   type        = string
   default     = "10.20.0.0/16"
 }
+
+variable "availability_zone_ids" {
+  description = "Exactly three AZ IDs to use. Mumbai: aps1-az1..3; Frankfurt DR (dr.tfvars): euc1-az1..3."
+  type        = list(string)
+  default     = ["aps1-az1", "aps1-az2", "aps1-az3"]
+
+  validation {
+    condition     = length(var.availability_zone_ids) == 3
+    error_message = "The network module builds one public and one private subnet in exactly three AZs."
+  }
+}
