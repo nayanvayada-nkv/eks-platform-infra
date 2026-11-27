@@ -21,7 +21,8 @@ repos:
     hooks:
       - id: checkov
         args: ["--quiet", "--framework", "terraform"]
-  - repo: https://github.com/koalaman/shellcheck-precommit
-    rev: v0.11.0
+  # shellcheck 0.11.0 as a Python wheel: no Docker, no Docker Hub image (see CLAUDE.md).
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
