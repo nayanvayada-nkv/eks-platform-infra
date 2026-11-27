@@ -1,0 +1,22 @@
+# Layer 4 identity check by ztunnel, on top of the NetworkPolicy IP check.
+# An AuthorizationPolicy with ALLOW rules makes everything not listed denied.
+# Identities are SPIFFE IDs from mTLS certificates, so a spoofed IP does not help.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              # Istio ingress gateway (Phase 4/5) and the backend's own service account.
+              - cluster.local/ns/istio-ingress/sa/istio-ingress
+              - cluster.local/ns/backend/sa/backend
+      to:
+        - operation:
+            ports: ["8080"]

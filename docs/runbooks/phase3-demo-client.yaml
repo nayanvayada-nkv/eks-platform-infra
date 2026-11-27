@@ -1,0 +1,45 @@
+# Phase 3 demo (runbook step 12b.5): a client in another namespace tries to call the backend.
+# It uses the signed backend image (any other image is refused by Kyverno), runs as non-root
+# to pass PSA "restricted", and has requests/limits to pass require-resources.
+# Replace IMAGE_WITH_DIGEST with the digest Argo CD is running:
+#   kubectl -n backend get deploy backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    istio.io/dataplane-mode: ambient
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: demo
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: client
+      image: IMAGE_WITH_DIGEST
+      command:
+        - python
+        - -c
+        - |
+          import urllib.request
+          try:
+              print(urllib.request.urlopen("http://backend.backend.svc/healthz", timeout=5).read())
+              print("REACHED BACKEND (policy not working)")
+          except Exception as e:
+              print("BLOCKED as expected:", e)
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      resources:
+        requests: { cpu: 50m, memory: 64Mi }
+        limits: { memory: 128Mi }

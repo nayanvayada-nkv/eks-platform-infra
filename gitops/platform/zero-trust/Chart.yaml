@@ -1,0 +1,6 @@
+# Cluster-wide Zero Trust rules (Phase 3), deployed by the Argo CD app "zero-trust".
+apiVersion: v2
+name: zero-trust
+description: Kyverno admission policies and mesh-wide mTLS for the dev cluster
+type: application
+version: 0.1.0

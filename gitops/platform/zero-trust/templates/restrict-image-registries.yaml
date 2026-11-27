@@ -1,0 +1,23 @@
+# Images may only come from this project's ECR repositories, by digest. Together with
+# verify-image-signatures this closes the gap "the signature check only looks at our ECR":
+# an image from Docker Hub is refused here before signatures even matter.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  validationActions: {{ toJson .Values.validationActions }}
+  failurePolicy: Fail
+  {{- include "zt.podMatch" . | nindent 2 }}
+  variables:
+    - name: images
+      expression: >-
+        (object.spec.containers + object.spec.?initContainers.orValue([])
+        + object.spec.?ephemeralContainers.orValue([])).map(c, c.image)
+  validations:
+    - expression: "variables.images.all(i, i.startsWith('{{ include "zt.registry" . }}'))"
+      messageExpression: "'images must come from {{ include "zt.registry" . }}, got: ' + variables.images.filter(i, !i.startsWith('{{ include "zt.registry" . }}')).join(', ')"
+    - expression: "variables.images.all(i, i.contains('@sha256:'))"
+      messageExpression: "'images must be pinned by digest (image@sha256:...), got: ' + variables.images.filter(i, !i.contains('@sha256:')).join(', ')"

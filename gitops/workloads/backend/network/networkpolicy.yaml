@@ -1,0 +1,58 @@
+# Layer 3/4 firewall, enforced by the VPC CNI network policy agent (eBPF on each node).
+# Default deny in both directions, then allow only what the backend needs.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {} # every pod in the namespace
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  policyTypes: [Ingress]
+  ingress:
+    # Mesh traffic arrives as HBONE (mTLS tunnel) on 15008, from the Istio ingress
+    # gateway (Phase 4/5) or other backend pods. Nothing else in the cluster may connect.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-ingress
+        - podSelector: {} # same namespace
+      ports:
+        - { protocol: TCP, port: 15008 }
+    # Kubelet health probes: in ambient mode istio-cni rewrites their source to this
+    # link-local address so ztunnel lets them through in plaintext.
+    - from:
+        - ipBlock:
+            cidr: 169.254.7.127/32
+      ports:
+        - { protocol: TCP, port: 8080 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  policyTypes: [Egress]
+  egress:
+    # DNS only, to CoreDNS. Database / AWS endpoints are added when Phase 4 needs them.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }

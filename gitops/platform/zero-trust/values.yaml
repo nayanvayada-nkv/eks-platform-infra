@@ -1,0 +1,18 @@
+# awsAccountId / awsRegion come from the root Application (Terraform), not from Git.
+awsAccountId: ""
+awsRegion: ap-south-1
+project: eks-platform
+cosignKeyRef: awskms:///alias/eks-platform-cosign
+
+# Pods in these namespaces are not checked (platform components with upstream images).
+# Everything else is checked by default: a new namespace is covered without anyone remembering.
+systemNamespaces:
+  - kube-system
+  - kube-public
+  - kube-node-lease
+  - argocd
+  - kyverno
+  - istio-system
+
+# Deny (enforce) or Audit (report only). Start a new rule in Audit, then switch to Deny.
+validationActions: [Deny]

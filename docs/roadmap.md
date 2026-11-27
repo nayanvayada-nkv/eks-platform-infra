@@ -5,7 +5,7 @@
 | 0 | Foundations: repo, state backend, OIDC, budget alerts, problem statement | Bootstrap applied, CI checks green |
 | 1 | (code written) VPC + EKS in Mumbai (dev only): Karpenter, Pod Identity (IRSA available), ALB controller | Cluster up, cost noted |
 | 2 | (code written) CI/CD and supply chain: GitHub Actions OIDC, SBOM, Trivy, ECR by digest, Cosign, GitOps repo, Argo CD | Signed image deployed by Argo CD |
-| 3 | Zero Trust in cluster: Istio mTLS + AuthZ, Kyverno verifyImages, pod security, NetworkPolicy, secrets | Unsigned image rejected (demo) |
+| 3 | (code written) Zero Trust in cluster: Istio ambient mTLS + AuthZ, Kyverno image signatures, pod security, NetworkPolicy (secrets moved to Phase 4) | Unsigned image rejected (demo) |
 | 4 | Data and sample app: Aurora, Redis, Flask app, HPA | App serving traffic |
 | 5 | Edge and security: Route 53, CloudFront, WAF, Shield, GuardDuty, Security Hub | WAF blocking test traffic |
 | 6 | Observability: Prometheus, Grafana, logs, tracing, alerts, SLOs | Dashboards + alert test |

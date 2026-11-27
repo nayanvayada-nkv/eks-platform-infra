@@ -11,7 +11,7 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
 | `modules/` | Reusable building blocks (`vpc`, `eks`). No backend, no lock file. |
 | `environments/dev/<stack>` | Deployed dev stacks, one state file each: `network` -> `eks` -> `platform`. |
 | `environments/shared/<stack>` | Shared, long-lived stacks (`supply-chain`: ECR, Cosign KMS key, build role). |
-| `gitops/` | What Argo CD deploys: app-of-apps chart (`clusters/dev`) and workloads (Kustomize). |
+| `gitops/` | What Argo CD deploys: app-of-apps chart (`clusters/dev`), cluster-wide Zero Trust policies (`platform/zero-trust`) and workloads (Kustomize). |
 | `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`). |
 | `docs/` | Roadmap, ADRs, architecture, runbooks, session logs, study guides. |
 | `apps/` | Application source (`backend`), built by `.github/workflows/backend-image.yml`. |
@@ -29,9 +29,9 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
 - **Security in layers:** network (private subnets, API restricted to one IP, flow logs) -> identity
   (GitHub OIDC, access entries, Pod Identity, IMDSv2 hop 1) -> supply chain (Trivy gate, SBOM, Cosign
   signature with a KMS key, deploy by digest) -> cluster (PSA restricted now; Kyverno, Istio,
-  NetworkPolicy in Phase 3) -> data (KMS everywhere).
+  NetworkPolicy as code in Phase 3, ADR 0006) -> data (KMS everywhere).
 - **Be honest about status.** Only Phase 0 (bootstrap) has ever been applied to AWS, and that state
-  bucket was later destroyed. Phases 1 and 2 exist as code that passes validate, tflint, Checkov,
+  bucket was later destroyed. Phases 1, 2 and 3 exist as code that passes validate, tflint, Checkov,
   actionlint, tests and Trivy, but they have **not** been applied. Never describe them as running or
   proven until the test run in `docs/runbooks/phase1-2-test-run.md` has succeeded.
 - Never apply, destroy or call AWS without the user's explicit OK for that step (cost).

@@ -21,6 +21,20 @@ resource "helm_release" "argocd" {
         "admin.enabled"           = "true"  # local admin for dev only; SSO in prod
         "users.anonymous.enabled" = "false" # no read-only access without login
         "exec.enabled"            = "false" # no shell into pods from the UI
+        # Argo CD does not judge child Application health by default, so sync waves in the
+        # app of apps would not wait (Kyverno must be Healthy before its policies apply).
+        "resource.customizations.health.argoproj.io_Application" = <<-LUA
+          hs = {}
+          hs.status = "Progressing"
+          hs.message = ""
+          if obj.status ~= nil and obj.status.health ~= nil then
+            hs.status = obj.status.health.status
+            if obj.status.health.message ~= nil then
+              hs.message = obj.status.health.message
+            end
+          end
+          return hs
+        LUA
       }
     }
     server = {
@@ -52,6 +66,10 @@ resource "kubectl_manifest" "argocd_root_app" {
           valuesObject = {
             repoURL        = var.gitops_repo_url
             targetRevision = var.gitops_revision
+            # Used by the Phase 3 policies to trust only this account's ECR (not a secret,
+            # but kept out of Git so the repo works for any account).
+            awsAccountId = data.aws_caller_identity.current.account_id
+            awsRegion    = var.aws_region
           }
         }
       }
