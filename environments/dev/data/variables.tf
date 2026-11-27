@@ -87,3 +87,9 @@ variable "admin_password_version" {
   type        = number
   default     = 1
 }
+
+variable "embedding_model_id" {
+  description = "Bedrock embedding model for RAG (Phase 9). Titan Text Embeddings V2, 1024 dimensions."
+  type        = string
+  default     = "amazon.titan-embed-text-v2:0"
+}

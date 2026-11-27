@@ -29,3 +29,18 @@ groups:
           severity: critical
         annotations:
           summary: No metrics from the cluster for 10 minutes (Prometheus or remote write broken)
+
+  - name: rag
+    rules:
+      - alert: RagTokenSpendHigh
+        expr: sum(increase(rag_llm_tokens_total[1h])) > 2000000
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAG used {{ $value | humanize }} Claude tokens in the last hour (cost guard)"
+      - alert: RagRefusalsRising
+        expr: sum(increase(rag_llm_refusals_total[30m])) > 5
+        labels:
+          severity: warning
+        annotations:
+          summary: More than 5 RAG requests declined in 30 minutes (possible abuse or prompt-injection attempts)

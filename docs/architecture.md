@@ -36,7 +36,7 @@ run it yourself.
 | Observability: Prometheus, Alertmanager, Grafana, OpenSearch, Tempo/Jaeger | 6 | Planned | `gitops/` |
 | Germany (DR) region, pilot light (US dropped, ADR 0010) | 7 | Built as code, not applied | `environments/dev/*` in the `dr` workspace, `scripts/up-dr.sh` |
 | Aurora Global Database (Mumbai writer, Frankfurt headless secondary) | 7 | Built as code, not applied | `environments/dev/data`, `scripts/dr-drill.sh` |
-| Vector DB / RAG | 9 | In scope, to be built (decided 22 Nov 2026) | option open: pgvector / OpenSearch / Qdrant |
+| Vector DB / RAG | 9 | Built as code, not applied (pgvector chosen) | `apps/backend/rag.py`, `migrate.py`, ADR 0011 |
 
 ## Open decision: one or two DR regions
 

@@ -1,0 +1,17 @@
+# Tenants of the RAG API. The db-migrate job syncs this list into the "tenants" table on
+# every deploy: listed tenants are created or updated, tenants removed from the list are
+# disabled (their API key stops working; their documents stay until deleted on request).
+#
+# Only the SHA-256 of each API key is stored here. The key is 256 random bits, so its hash
+# reveals nothing useful and is safe in a public repo. Create a key with
+#   scripts/new-tenant-key.sh <tenant-id> "<Display Name>"
+# give the printed key to the customer once, and paste the printed entry below.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-tenants
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2" # before the db-migrate job
+data:
+  tenants.json: |
+    []
