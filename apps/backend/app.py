@@ -1,4 +1,5 @@
-"""Backend API (Phase 4): items stored in Aurora PostgreSQL, cached in Valkey.
+"""Backend API: items stored in Aurora PostgreSQL, cached in Valkey (Phase 4),
+with metrics and traces (Phase 6, see telemetry.py).
 
 Every login uses a short-lived IAM token from the pod's identity; the app holds no passwords.
 """
@@ -7,11 +8,14 @@ import os
 
 from flask import Flask, jsonify, request
 
+from telemetry import instrument
+
 MAX_NAME = 200
 
 
 def create_app(store=None) -> Flask:
     app = Flask(__name__)
+    instrument(app)
     state = {"store": store}
 
     def get_store():

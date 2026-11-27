@@ -20,3 +20,11 @@ spec:
       to:
         - operation:
             ports: ["8080"]
+    # Prometheus may read metrics, and nothing else.
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/monitoring/sa/prometheus
+      to:
+        - operation:
+            ports: ["9464"]

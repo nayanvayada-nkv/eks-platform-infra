@@ -9,10 +9,10 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
 |---|---|
 | `bootstrap/` | One-time stack: Terraform state bucket, state KMS key, GitHub OIDC provider, plan role. Local state first, then migrated into its own bucket. |
 | `modules/` | Reusable building blocks (`vpc`, `eks`). No backend, no lock file. |
-| `environments/dev/<stack>` | Deployed dev stacks, one state file each: `network` -> `eks` -> `data` -> `edge` -> `platform`. |
+| `environments/dev/<stack>` | Deployed dev stacks, one state file each: `network` -> `eks` -> `data` -> `edge` -> `observability` -> `platform`. |
 | `environments/shared/<stack>` | Shared, long-lived stacks (`supply-chain`: ECR, Cosign KMS key, build role; `security`: GuardDuty, Security Hub, Config, alerts, budget). |
 | `gitops/` | What Argo CD deploys: app-of-apps chart (`clusters/dev`), cluster-wide Zero Trust policies (`platform/zero-trust`) and workloads (Kustomize). |
-| `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`). |
+| `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`) and `grafana-dashboards.sh`. |
 | `docs/` | Roadmap, ADRs, architecture, runbooks, session logs, study guides. |
 | `apps/` | Application source (`backend`), built by `.github/workflows/backend-image.yml`. |
 
@@ -35,7 +35,7 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
   signature with a KMS key, deploy by digest) -> cluster (PSA restricted now; Kyverno, Istio,
   NetworkPolicy as code in Phase 3, ADR 0006) -> data (KMS everywhere; apps log in with IAM tokens, no passwords, ADR 0007).
 - **Be honest about status.** Only Phase 0 (bootstrap) has ever been applied to AWS, and that state
-  bucket was later destroyed. Phases 1 to 5 exist as code that passes validate, tflint, Checkov,
+  bucket was later destroyed. Phases 1 to 6 exist as code that passes validate, tflint, Checkov,
   actionlint, tests and Trivy, but they have **not** been applied. Never describe them as running or
   proven until the test run in `docs/runbooks/phase1-2-test-run.md` has succeeded.
 - Never apply, destroy or call AWS without the user's explicit OK for that step (cost).

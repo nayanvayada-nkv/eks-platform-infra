@@ -87,3 +87,23 @@ def test_migration_grants_least_privilege():
     assert "GRANT rds_iam" in rendered
     assert "GRANT SELECT, INSERT ON items" in rendered
     assert "DELETE" not in rendered and "SUPERUSER" not in rendered
+
+
+def _count(route, status):
+    from prometheus_client import REGISTRY
+
+    value = REGISTRY.get_sample_value(
+        "http_requests_total", {"method": "GET", "route": route, "status": status}
+    )
+    return value or 0
+
+
+def test_metrics_count_by_route_pattern_and_skip_probes():
+    c = client()
+    before_items, before_health = _count("/items", "200"), _count("/healthz", "200")
+    c.get("/items")
+    c.get("/healthz")
+    c.get("/no-such-page")
+    assert _count("/items", "200") == before_items + 1
+    assert _count("/healthz", "200") == before_health  # probes are not part of the SLO
+    assert _count("unmatched", "404") >= 1  # raw paths never become labels

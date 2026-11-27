@@ -1,0 +1,6 @@
+# Phase 6: trace collector and scrape targets (deployed by the Argo CD app "observability").
+apiVersion: v2
+name: observability
+description: ADOT collector (traces to X-Ray) and Prometheus scrape targets
+type: application
+version: 0.1.0

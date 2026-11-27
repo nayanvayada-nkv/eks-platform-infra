@@ -40,6 +40,10 @@ resource "helm_release" "argocd" {
     server = {
       service = { type = "ClusterIP" }
     }
+    # Phase 6: application sync/health metrics for Prometheus (ServiceMonitor in gitops/platform/observability).
+    controller = {
+      metrics = { enabled = true }
+    }
   })]
 
   depends_on = [helm_release.karpenter] # Argo CD pods may land on Karpenter nodes
@@ -77,6 +81,8 @@ resource "kubectl_manifest" "argocd_root_app" {
               targetGroupArn     = data.terraform_remote_state.edge.outputs.gateway_target_group_arn
               albSecurityGroupId = data.terraform_remote_state.edge.outputs.alb_security_group_id
             }
+            # Phase 6: AMP remote-write URL, log group, region (no secrets).
+            observability = data.terraform_remote_state.observability.outputs.collectors_config
           }
         }
       }

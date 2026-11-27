@@ -1,0 +1,148 @@
+{{- /*
+Phase 6 observability (ADR 0009). Installed only when the Terraform observability stack exists.
+  kube-prometheus-stack : Prometheus scrapes, keeps 6 h, remote-writes a filtered set to AMP
+  aws-for-fluent-bit    : container logs -> CloudWatch Logs
+  observability         : ADOT collector (traces -> X-Ray) and the scrape targets (PodMonitors...)
+"monitoring" joins the ambient mesh: Prometheus scrapes meshed pods over mTLS with its own identity.
+*/ -}}
+{{- with .Values.observability }}
+{{- if .ampRemoteWriteUrl }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0" # after the mesh: the namespace is meshed
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: {{ $.Values.versions.kubePrometheusStack | quote }}
+    helm:
+      releaseName: kps
+      valuesObject:
+        grafana:
+          enabled: false # Amazon Managed Grafana instead (its image is only on Docker Hub)
+        alertmanager:
+          enabled: false # Amazon Managed Prometheus Alertmanager -> SNS -> email
+        defaultRules:
+          create: false # rules are evaluated in AMP (environments/dev/observability/rules)
+        kubeControllerManager: { enabled: false } # EKS control plane is managed by AWS
+        kubeScheduler: { enabled: false }
+        kubeEtcd: { enabled: false }
+        kubeProxy: { enabled: false }
+        prometheusOperator:
+          admissionWebhooks:
+            enabled: false # avoids cert-generation hook Jobs; rules are validated by promtool in Git
+          tls:
+            enabled: false # only served the admission webhook, which is off
+        prometheus:
+          serviceAccount:
+            name: prometheus # Pod Identity: aps:RemoteWrite on one workspace
+          prometheusSpec:
+            retention: 6h
+            scrapeInterval: 60s
+            externalLabels:
+              cluster: eks-platform-dev
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            resources:
+              requests: { cpu: 200m, memory: 512Mi }
+              limits: { memory: 1536Mi }
+            remoteWrite:
+              - url: {{ .ampRemoteWriteUrl | quote }}
+                sigv4:
+                  region: {{ .region | quote }}
+                queueConfig:
+                  maxSamplesPerSend: 1000
+                  maxShards: 10
+                # Cost control: AMP bills per sample ingested. Ship only what dashboards,
+                # SLOs and alerts use; everything else stays in the local 6 h window.
+                writeRelabelConfigs:
+                  - sourceLabels: [__name__]
+                    action: keep
+                    regex: "up|http_request.*|kube_(deployment|pod|node|namespace|horizontalpodautoscaler)_.*|node_(cpu_seconds_total|memory_MemAvailable_bytes|memory_MemTotal_bytes|filesystem_avail_bytes|filesystem_size_bytes)|container_(cpu_usage_seconds_total|memory_working_set_bytes)|argocd_app_info|istio_tcp_.*|kyverno_admission_.*|kyverno_policy_results_total|otelcol_exporter_.*"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    managedNamespaceMetadata:
+      labels:
+        istio.io/dataplane-mode: ambient
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true # CRDs are too big for client-side apply
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fluent-bit
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://aws.github.io/eks-charts
+    chart: aws-for-fluent-bit
+    targetRevision: {{ $.Values.versions.fluentBit | quote }}
+    helm:
+      releaseName: fluent-bit
+      valuesObject:
+        serviceAccount:
+          create: true
+          name: fluent-bit # Pod Identity: write to one log group only
+        cloudWatchLogs:
+          enabled: true
+          region: {{ .region | quote }}
+          logGroupName: {{ .containerLogGroup | quote }}
+          logStreamPrefix: "pod-"
+          logStreamTemplate: "$kubernetes['namespace_name'].$kubernetes['pod_name'].$kubernetes['container_name']"
+          autoCreateGroup: false # Terraform owns the group (KMS key, retention)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # needs the Prometheus Operator CRDs
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ required "repoURL is required" $.Values.repoURL | quote }}
+    targetRevision: {{ $.Values.targetRevision | quote }}
+    path: gitops/platform/observability
+    helm:
+      valuesObject:
+        region: {{ .region | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+{{- end }}
+{{- end }}

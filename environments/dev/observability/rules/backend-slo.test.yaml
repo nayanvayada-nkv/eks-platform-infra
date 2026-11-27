@@ -1,0 +1,50 @@
+# promtool test rules backend-slo.test.yaml
+rule_files:
+  - backend-slo.rules.yaml
+evaluation_interval: 1m
+tests:
+  # 10% errors for 70 minutes: the fast burn alert must fire.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="backend",status="200"}'
+        values: '0+90x70'
+      - series: 'http_requests_total{namespace="backend",status="500"}'
+        values: '0+10x70'
+      - series: 'kube_deployment_status_replicas_available{namespace="backend",deployment="backend"}'
+        values: '2x70'
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: BackendErrorBudgetBurnFast
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Backend is burning its 30-day error budget 14x too fast
+              description: "10% of requests failed over the last hour (SLO allows 0.5%)."
+      - eval_time: 70m
+        alertname: BackendDown
+        exp_alerts: []
+  # 0.1% errors: within budget, nothing fires.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="backend",status="200"}'
+        values: '0+999x70'
+      - series: 'http_requests_total{namespace="backend",status="500"}'
+        values: '0+1x70'
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: BackendErrorBudgetBurnFast
+        exp_alerts: []
+  # Deployment scaled to 0 (the Phase 6 alert test): BackendDown fires after 2 minutes.
+  - interval: 1m
+    input_series:
+      - series: 'kube_deployment_status_replicas_available{namespace="backend",deployment="backend"}'
+        values: '2 2 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: BackendDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: No backend pod is available
