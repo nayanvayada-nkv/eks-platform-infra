@@ -79,17 +79,18 @@ spec:
             cidr: 169.254.170.23/32
       ports:
         - { protocol: TCP, port: 80 }
-    # Aurora and Valkey live in the VPC's private subnets (10.20.0.0/16, environments/dev/network).
+    # Aurora and Valkey live in the VPC's private subnets: 10.20.0.0/16 in Mumbai, 10.21.0.0/16 in
+    # the Frankfurt DR region (one /15 covers both, so the same Git config runs in either region).
     # Their security groups only accept the cluster, so both sides must agree.
     - to:
         - ipBlock:
-            cidr: 10.20.0.0/16
+            cidr: 10.20.0.0/15
       ports:
         - { protocol: TCP, port: 5432 }
         - { protocol: TCP, port: 6379 }
     # Secrets Manager (db-migrate) through the VPC interface endpoint (private DNS), never the internet.
     - to:
         - ipBlock:
-            cidr: 10.20.0.0/16
+            cidr: 10.20.0.0/15
       ports:
         - { protocol: TCP, port: 443 }

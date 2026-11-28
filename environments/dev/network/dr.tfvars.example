@@ -1,0 +1,4 @@
+# Copy to dr.tfvars (git-ignored). Used with WORKSPACE=dr.
+aws_region  = "eu-central-1"
+environment = "dr"
+vpc_cidr    = "10.21.0.0/16" # Mumbai is 10.20.0.0/16; no overlap, so they could be peered

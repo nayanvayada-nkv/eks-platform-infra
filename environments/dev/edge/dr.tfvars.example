@@ -1,0 +1,4 @@
+# Copy to dr.tfvars (git-ignored). Used with WORKSPACE=dr.
+aws_region           = "eu-central-1"
+environment          = "dr"
+allowed_viewer_cidrs = ["203.0.113.10/32"] # your IP

@@ -2,15 +2,16 @@ data "aws_caller_identity" "current" {}
 
 locals {
   cluster_name = "${var.project}-${var.environment}"
-  state_bucket = "${var.project}-tfstate-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+  state_bucket = "${var.project}-tfstate-${data.aws_caller_identity.current.account_id}-${var.state_region}"
 }
 
 data "terraform_remote_state" "network" {
-  backend = "s3"
+  backend   = "s3"
+  workspace = terraform.workspace # "default" = Mumbai, "dr" = Frankfurt
   config = {
     bucket = local.state_bucket
     key    = "nonprod/dev/ap-south-1/network/terraform.tfstate"
-    region = var.aws_region
+    region = var.state_region # the state bucket stays in Mumbai
   }
 }
 

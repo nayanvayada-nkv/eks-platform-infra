@@ -1,7 +1,7 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  state_bucket = "${var.project}-tfstate-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+  state_bucket = "${var.project}-tfstate-${data.aws_caller_identity.current.account_id}-${var.state_region}"
   eks          = data.terraform_remote_state.eks.outputs
   network      = data.terraform_remote_state.network.outputs
   kube_exec = {

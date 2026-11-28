@@ -12,9 +12,16 @@ spec:
   source:
     repoURL: {{ required "repoURL is required" .Values.repoURL | quote }}
     targetRevision: {{ .Values.targetRevision | quote }}
-    path: gitops/workloads/backend/overlays/dev
-    {{- with .Values.backendConfig }}
+    {{- $dr := ne .Values.awsRegion .Values.homeRegion }}
+    path: gitops/workloads/backend/overlays/{{ if $dr }}dr{{ else }}dev{{ end }}
+    {{- if or $dr .Values.backendConfig }}
     kustomize:
+      {{- if $dr }}
+      images:
+        # Same digest, image pulled from this region's ECR replica (signatures replicate too).
+        - "{{ .Values.awsAccountId }}.dkr.ecr.{{ .Values.homeRegion }}.amazonaws.com/eks-platform/backend={{ .Values.awsAccountId }}.dkr.ecr.{{ .Values.awsRegion }}.amazonaws.com/eks-platform/backend"
+      {{- end }}
+      {{- with .Values.backendConfig }}
       patches:
         # Real Aurora / Valkey endpoints from Terraform; Git keeps placeholders.
         - target:
@@ -24,6 +31,7 @@ spec:
             - op: replace
               path: /data
               value: {{ toJson . }}
+      {{- end }}
     {{- end }}
   destination:
     server: https://kubernetes.default.svc
@@ -34,3 +42,11 @@ spec:
       selfHeal: true
     syncOptions:
       - PruneLast=true
+    # In the DR region the db-migrate hook fails while Aurora there is still a read-only
+    # secondary; once the drill promotes it, a retry succeeds and the API comes up.
+    retry:
+      limit: 30
+      backoff:
+        duration: 20s
+        factor: 2
+        maxDuration: 3m

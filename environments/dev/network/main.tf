@@ -7,11 +7,12 @@ module "vpc" {
 
   name         = "${var.project}-${var.environment}"
   cluster_name = "${var.project}-${var.environment}"
-  cidr_block   = "10.20.0.0/16"
+  cidr_block   = var.vpc_cidr
   azs          = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  public_subnet_cidrs  = ["10.20.0.0/24", "10.20.1.0/24", "10.20.2.0/24"]
-  private_subnet_cidrs = ["10.20.16.0/20", "10.20.32.0/20", "10.20.48.0/20"]
+  # Subnets derived from the VPC range: /24 public, /20 private, one per AZ.
+  public_subnet_cidrs  = [for i in range(3) : cidrsubnet(var.vpc_cidr, 8, i)]
+  private_subnet_cidrs = [for i in range(1, 4) : cidrsubnet(var.vpc_cidr, 4, i)]
 
   single_nat_gateway = true
 

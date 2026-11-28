@@ -3,6 +3,12 @@ variable "aws_region" {
   default = "ap-south-1"
 }
 
+variable "state_region" {
+  description = "Region of the Terraform state bucket (Mumbai), also when this stack runs in the dr workspace."
+  type        = string
+  default     = "ap-south-1"
+}
+
 variable "project" {
   type    = string
   default = "eks-platform"

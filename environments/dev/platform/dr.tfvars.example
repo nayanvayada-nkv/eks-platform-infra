@@ -1,0 +1,4 @@
+# Copy to dr.tfvars (git-ignored). Used with WORKSPACE=dr.
+aws_region      = "eu-central-1"
+environment     = "dr"
+gitops_repo_url = "https://github.com/CHANGE_ME/eks-platform-infra.git"

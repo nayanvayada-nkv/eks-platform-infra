@@ -1,48 +1,62 @@
 data "terraform_remote_state" "network" {
-  backend = "s3"
+  backend   = "s3"
+  workspace = terraform.workspace # "default" = Mumbai, "dr" = Frankfurt
   config = {
     bucket = local.state_bucket
     key    = "nonprod/dev/ap-south-1/network/terraform.tfstate"
-    region = var.aws_region
+    region = var.state_region # the state bucket stays in Mumbai
   }
 }
 
 data "terraform_remote_state" "eks" {
-  backend = "s3"
+  backend   = "s3"
+  workspace = terraform.workspace # "default" = Mumbai, "dr" = Frankfurt
   config = {
     bucket = local.state_bucket
     key    = "nonprod/dev/ap-south-1/eks/terraform.tfstate"
-    region = var.aws_region
+    region = var.state_region # the state bucket stays in Mumbai
   }
 }
 
 # Phase 4: Aurora / Valkey endpoints for the backend (no secrets in these outputs).
 data "terraform_remote_state" "data" {
-  backend = "s3"
+  backend   = "s3"
+  workspace = terraform.workspace # "default" = Mumbai, "dr" = Frankfurt
   config = {
     bucket = local.state_bucket
     key    = "nonprod/dev/ap-south-1/data/terraform.tfstate"
-    region = var.aws_region
+    region = var.state_region # the state bucket stays in Mumbai
   }
 }
 
 # Phase 5: internal ALB behind CloudFront + WAF.
 data "terraform_remote_state" "edge" {
-  backend = "s3"
+  backend   = "s3"
+  workspace = terraform.workspace # "default" = Mumbai, "dr" = Frankfurt
   config = {
     bucket = local.state_bucket
     key    = "nonprod/dev/ap-south-1/edge/terraform.tfstate"
-    region = var.aws_region
+    region = var.state_region # the state bucket stays in Mumbai
+  }
+  # Optional stack: without it the gateway is simply not exposed (e.g. a DR drill without edge).
+  defaults = {
+    gateway_target_group_arn = ""
+    alb_security_group_id    = ""
   }
 }
 
 # Phase 6: metrics, logs and traces destinations.
 data "terraform_remote_state" "observability" {
-  backend = "s3"
+  backend   = "s3"
+  workspace = terraform.workspace # "default" = Mumbai, "dr" = Frankfurt
   config = {
     bucket = local.state_bucket
     key    = "nonprod/dev/ap-south-1/observability/terraform.tfstate"
-    region = var.aws_region
+    region = var.state_region # the state bucket stays in Mumbai
+  }
+  # Optional stack: the DR region runs without its own observability by default.
+  defaults = {
+    collectors_config = {}
   }
 }
 
