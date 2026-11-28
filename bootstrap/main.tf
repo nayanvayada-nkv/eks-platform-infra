@@ -34,13 +34,15 @@ resource "aws_kms_alias" "state" {
 # ---------------------------------------------------------------------------
 resource "aws_s3_bucket" "state" {
   #checkov:skip=CKV_AWS_18:State access is audited by CloudTrail; separate access-log bucket not worth it for one bucket
-  #checkov:skip=CKV_AWS_144:Versioning covers state recovery; cross-region copy is added with DR in Phase 7
+  #checkov:skip=CKV_AWS_144:Versioning covers state recovery; cross-region copy not needed: the DR stacks keep their state here too and the bucket is versioned
   #checkov:skip=CKV2_AWS_62:No consumers for bucket events
-  bucket        = local.state_bucket_name
-  force_destroy = true
+  bucket = local.state_bucket_name
+  # Bootstrap is never destroyed (CLAUDE.md): Terraform refuses to delete the state bucket, and
+  # even a manual delete fails while it still holds state versions.
+  force_destroy = false
 
   lifecycle {
-    prevent_destroy = false
+    prevent_destroy = true
   }
 }
 

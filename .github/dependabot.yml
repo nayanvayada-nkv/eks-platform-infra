@@ -1,0 +1,19 @@
+# Keeps pinned versions current: GitHub Actions (SHA pins), the backend's Python packages and
+# Terraform providers. Updates arrive as pull requests and go through the same CI checks.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: pip
+    directory: /apps/backend
+    schedule: { interval: weekly }
+  - package-ecosystem: pip
+    directory: /loadtest
+    schedule: { interval: monthly }
+  - package-ecosystem: terraform
+    directories:
+      - /environments/dev/*
+      - /environments/shared/*
+      - /bootstrap
+    schedule: { interval: weekly }

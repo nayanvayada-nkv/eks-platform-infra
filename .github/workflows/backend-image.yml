@@ -35,9 +35,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: "3.14"
 
@@ -59,12 +59,12 @@ jobs:
       # supply-chain stack is applied). Before that, main still builds, scans and makes the SBOM.
       PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.AWS_BUILD_ROLE_ARN != '' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Build image (local only)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: apps/backend
           load: true
@@ -73,7 +73,7 @@ jobs:
 
       # Security gate: fail on fixable HIGH / CRITICAL vulnerabilities.
       - name: Trivy scan
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.LOCAL_TAG }}
           severity: HIGH,CRITICAL
@@ -83,7 +83,7 @@ jobs:
           format: table
 
       - name: Generate SBOM (SPDX)
-        uses: anchore/sbom-action@v0.24.3
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           image: ${{ env.LOCAL_TAG }}
           format: spdx-json
@@ -93,7 +93,7 @@ jobs:
       # ---------------- main branch only from here ----------------
       - name: Configure AWS credentials (OIDC)
         if: env.PUBLISH == 'true'
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6
         with:
           role-to-assume: ${{ vars.AWS_BUILD_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -101,7 +101,7 @@ jobs:
       - name: Log in to ECR
         if: env.PUBLISH == 'true'
         id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@7290e214a610b32bc0eef81748948b6d466a8783 # v2
 
       - name: Push image and resolve digest
         if: env.PUBLISH == 'true'
@@ -116,7 +116,7 @@ jobs:
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "Pushed $image@$digest" >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: sigstore/cosign-installer@v4
+      - uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
         if: env.PUBLISH == 'true'
         with:
           cosign-release: v3.1.4
@@ -143,7 +143,7 @@ jobs:
 
       - name: Open GitOps pull request
         if: env.PUBLISH == 'true'
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8
         with:
           branch: gitops/backend-dev
           commit-message: "deploy(backend): dev -> ${{ steps.push.outputs.digest }}"

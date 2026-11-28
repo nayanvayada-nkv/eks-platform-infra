@@ -12,16 +12,16 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
 | `environments/dev/<stack>` | Deployed dev stacks, one state file each: `network` -> `eks` -> `data` -> `edge` -> `observability` -> `platform`. |
 | `environments/shared/<stack>` | Shared, long-lived stacks (`supply-chain`: ECR, Cosign KMS key, build role; `security`: GuardDuty, Security Hub, Config, alerts, budget). |
 | `gitops/` | What Argo CD deploys: app-of-apps chart (`clusters/dev`), cluster-wide Zero Trust policies (`platform/zero-trust`) and workloads (Kustomize). |
-| `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`), DR (`up-dr.sh`, `destroy-dr.sh`, `dr-drill.sh`), `grafana-dashboards.sh`, `new-tenant-key.sh`, `fde-load-docs.sh`. |
+| `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`), DR (`up-dr.sh`, `destroy-dr.sh`, `dr-drill.sh`), `grafana-dashboards.sh`, `new-tenant-key.sh`, `fde-load-docs.sh`, `loadtest.sh`, `cost-report.sh`. |
 | `docs/` | Roadmap, ADRs, architecture, runbooks, session logs, study guides, FDE engagement (`docs/fde`, fictional customer). |
 | `apps/` | Application source (`backend`), built by `.github/workflows/backend-image.yml`. |
+| `loadtest/` | Locust load test (`scripts/loadtest.sh`), results git-ignored. |
 
 ## Decisions
 
 - **Bootstrap stays on and is never destroyed.** Only dev stacks are destroyed to save cost.
   `scripts/destroy-dev.sh` refuses anything outside `environments/dev/`.
-  Note: `bootstrap/main.tf` still has `force_destroy = true` / `prevent_destroy = false` on the state
-  bucket from an earlier teardown; set them back to `false` / `true` before the next bootstrap apply.
+  The state bucket has `force_destroy = false` and `prevent_destroy = true` (restored in Phase 8).
 - **DR = same stacks, `dr` workspace.** Frankfurt (eu-central-1) is a pilot-light copy: `WORKSPACE=dr scripts/tf.sh ...`
   loads `<stack>/dr.tfvars`. Aurora Global Database and ECR/KMS replication keep data and images there (ADR 0010).
 - **RAG tenants live in Git** (`gitops/workloads/backend/tenants`, key hashes only); isolation is PostgreSQL row-level
@@ -39,7 +39,7 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
   signature with a KMS key, deploy by digest) -> cluster (PSA restricted now; Kyverno, Istio,
   NetworkPolicy as code in Phase 3, ADR 0006) -> data (KMS everywhere; apps log in with IAM tokens, no passwords, ADR 0007).
 - **Be honest about status.** Only Phase 0 (bootstrap) has ever been applied to AWS, and that state
-  bucket was later destroyed. Phases 1 to 7 and 9 exist as code that passes validate, tflint, Checkov,
+  bucket was later destroyed. Phases 1 to 9 (and the FDE track) exist as code that passes validate, tflint, Checkov,
   actionlint, tests and Trivy, but they have **not** been applied. Never describe them as running or
   proven until the test run in `docs/runbooks/phase1-2-test-run.md` has succeeded.
 - Never apply, destroy or call AWS without the user's explicit OK for that step (cost).
@@ -53,6 +53,9 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
 - Never use `-auto-approve`. Applies go through a reviewed plan file; destroys ask for confirmation.
 - Quote every variable expansion (`"$VAR"`, `"${ARR[@]}"`).
 - Scripts must pass `shellcheck` (also a pre-commit hook).
+- Local check tools must not come from Docker Hub either: use `ghcr.io/bridgecrewio/checkov`, `ghcr.io/aquasecurity/trivy`,
+  `ghcr.io/terraform-linters/tflint`, `ghcr.io/kyverno/kyverno-cli`, or pip/binary installs.
+- GitHub Actions are pinned by commit SHA (comment = version); Dependabot proposes updates.
 - Destroy only dev stacks (`environments/dev/*`, either workspace). Never bootstrap, never `shared/` without an explicit request.
 
 ## Working style

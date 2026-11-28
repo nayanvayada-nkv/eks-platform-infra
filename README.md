@@ -1,94 +1,59 @@
 # eks-platform-infra
 
-Infrastructure as code for a secure, multi-region Kubernetes platform on AWS.
+A Zero Trust Kubernetes platform on AWS, built as code: EKS in Mumbai (ap-south-1) with a pilot-light
+disaster-recovery copy in Frankfurt (eu-central-1). Terraform for infrastructure, Argo CD for everything
+running in the cluster, and a supply chain where only scanned, signed images can run.
 
-**What it does:** provisions EKS, networking and data layers with Terraform, delivers workloads
-through Argo CD (GitOps), and only admits container images that are scanned, signed and verified.
-Mumbai is primary, with a lean active-passive DR region.
+> **Status (honest):** Phases 0-9 and the FDE track are written and pass local checks (terraform
+> validate, tflint, Checkov 0 failed, actionlint, shellcheck, unit tests, Trivy, Kyverno CLI, promtool).
+> Only Phase 0 has ever been applied to AWS. Nothing else is proven on AWS until the test run in
+> [docs/runbooks/phase1-2-test-run.md](docs/runbooks/phase1-2-test-run.md) succeeds.
 
-**Status:** Phases 1 to 7 and 9 plus the FDE track written and validated, not applied yet. FDE engagement: [docs/fde](docs/fde/README.md). Diagram and per-box status: [docs/architecture.md](docs/architecture.md). See [docs/roadmap.md](docs/roadmap.md).
+Target diagram: [docs/architecture.webp](docs/architecture.webp), mapped box by box in
+[docs/architecture.md](docs/architecture.md). Plan and status: [docs/roadmap.md](docs/roadmap.md).
 
-## Repo layout
+## What is in it
+
+| Layer | What | Decision record |
+|---|---|---|
+| Edge | CloudFront + WAF (OWASP, Log4j, SQLi, rate limit) -> internal ALB via VPC origin; Shield Standard | [ADR 0008](docs/adr/0008-edge-and-account-security.md) |
+| Network | Private subnets, 1 NAT, VPC endpoints (S3, Secrets Manager, Bedrock), flow logs, API restricted to one IP | Phase 1 |
+| Identity | GitHub OIDC (no keys in CI), EKS access entries, Pod Identity, IMDSv2 hop 1 | [ADR 0004](docs/adr/0004-pod-identity-over-irsa.md) |
+| Supply chain | Trivy gate, SPDX SBOM, Cosign signature with a KMS key, deploy by digest via PR, actions pinned by SHA | [ADR 0005](docs/adr/0005-supply-chain-signing-and-gitops-pr.md) |
+| Cluster | Kyverno CEL policies (signed images only), Istio ambient mTLS + AuthZ, default-deny NetworkPolicy, PSA restricted | [ADR 0006](docs/adr/0006-zero-trust-in-cluster.md) |
+| Data | Aurora PostgreSQL Serverless v2, Valkey serverless, IAM-token logins (no passwords), KMS | [ADR 0007](docs/adr/0007-data-layer-and-ingress.md) |
+| Observability | Prometheus -> Amazon Managed Prometheus, Managed Grafana, Fluent Bit -> CloudWatch, OTel -> X-Ray, SLO burn-rate alerts | [ADR 0009](docs/adr/0009-observability.md) |
+| DR | Pilot light: Aurora Global Database, ECR + KMS replication, same stacks in a `dr` workspace, measured drill | [ADR 0010](docs/adr/0010-pilot-light-dr-frankfurt.md) |
+| AI | Multi-tenant RAG: pgvector (HNSW, row-level security), Titan embeddings, Claude on Amazon Bedrock with citations | [ADR 0011](docs/adr/0011-rag-pgvector-bedrock.md) |
+| Account security | GuardDuty, Security Hub, AWS Config, alert email, $10 budget | [ADR 0008](docs/adr/0008-edge-and-account-security.md) |
+
+Customer story on top of it: [Forward Deployed Engineer track](docs/fde/README.md) (fictional customer).
+
+## Layout
 
 | Path | Purpose |
 |---|---|
-| `bootstrap/` | One-time stack: state bucket, KMS key, GitHub OIDC provider and plan role |
-| `modules/` | Reusable, versioned building blocks (network, eks, ecr, data, edge, ...) |
-| `environments/` | Deployed stacks per environment (`dev/network`, `dev/eks`, `dev/platform`), one state file each |
-| `gitops/` | Argo CD apps, Helm/Kustomize, Kyverno policies (may move to its own repo) |
-| `policies/` | Custom Checkov / OPA / Kyverno rules |
-| `docs/` | Roadmap, architecture diagrams, decision records (ADRs) |
+| `bootstrap/` | State bucket, state KMS key, GitHub OIDC provider, plan role (never destroyed) |
+| `modules/` | `vpc`, `eks` |
+| `environments/dev/*` | `network` -> `eks` -> `data` -> `edge` -> `observability` -> `platform` (+ optional `chaos`); `dr` workspace = Frankfurt |
+| `environments/shared/*` | `supply-chain` (ECR, Cosign key, build role), `security` (GuardDuty, Security Hub, Config, alerts, budget) |
+| `gitops/` | Argo CD app of apps, platform charts (Kyverno policies, observability, ingress), backend Kustomize |
+| `apps/backend` | Flask API: items, RAG, metrics, traces |
+| `loadtest/` | Locust load test |
+| `scripts/` | `tf.sh` and up/destroy/DR/drill/load-test/cost helpers (shellcheck-clean) |
+| `docs/` | ADRs, runbooks, roadmap, FDE track, interview guide, blog drafts, session logs |
 
-## Phase 0: run the bootstrap
-
-Prerequisites: Terraform >= 1.10, AWS CLI with a working profile (`aws sts get-caller-identity`).
-
-```bash
-cd bootstrap
-cp terraform.tfvars.example terraform.tfvars   # set github_org
-terraform init
-terraform plan
-terraform apply
-```
-
-Then:
-
-1. Copy the outputs. In GitHub: Settings > Secrets and variables > Actions > Variables, add
-   `AWS_PLAN_ROLE_ARN` = the `github_plan_role_arn` output.
-2. Move the bootstrap state into the new bucket: rename `backend.tf.example` to `backend.tf`,
-   fill in the bucket name, run `terraform init -migrate-state`. Then delete the local `*.tfstate`.
-3. Enable the hooks: `pre-commit install`.
-
-Never commit `terraform.tfvars`, state files or access keys.
-
-## Phase 1: dev network, EKS and platform add-ons
-
-Three stacks, applied in order. Each has its own state file in the bootstrap bucket.
-
-| Stack | What it creates |
-|---|---|
-| `environments/dev/network` | VPC 10.20.0.0/16, 3 public + 3 private subnets, 1 NAT gateway, S3 gateway endpoint |
-| `environments/dev/eks` | EKS cluster (secrets encrypted with KMS, API restricted to your IP), 2x t3.medium system nodes, managed add-ons (VPC CNI, CoreDNS, kube-proxy, Pod Identity agent, EBS CSI), Karpenter IAM + SQS queue, Load Balancer Controller IAM role |
-| `environments/dev/platform` | Helm: AWS Load Balancer Controller, metrics-server (for HPA), Karpenter, plus a default `EC2NodeClass` and `NodePool` (spot first, capped at 16 vCPU) |
-
-Approximate cost while running (ap-south-1): EKS control plane ~$0.10/h, NAT gateway ~$0.056/h plus data,
-2x t3.medium ~$0.09/h, plus any Karpenter nodes. Roughly **$6-7/day**. Destroy when not in use.
+## Run it (every apply needs a reviewed plan; costs money)
 
 ```bash
-cp environments/backend.hcl.example environments/backend.hcl   # set your bucket name
-cp environments/dev/eks/terraform.tfvars.example environments/dev/eks/terraform.tfvars  # set your IP
-
-cd environments/dev/network  && terraform init -backend-config=../../backend.hcl && terraform plan
-cd ../eks                    && terraform init -backend-config=../../backend.hcl && terraform plan
-cd ../platform               && terraform init -backend-config=../../backend.hcl && terraform plan
+cp environments/backend.hcl.example environments/backend.hcl   # state bucket from bootstrap
+scripts/check-bootstrap.sh                                      # state bucket and key exist
+scripts/up-dev.sh                                               # plan + confirm each dev stack
+scripts/destroy-dev.sh                                          # reverse order, typed confirmation
 ```
 
-Apply in the same order (network, eks, platform). Destroy in reverse order (platform, eks, network),
-and delete any Ingress / LoadBalancer Services first so the controller removes its ALBs.
+Step-by-step with checks: [test run](docs/runbooks/phase1-2-test-run.md), [DR drill](docs/runbooks/phase7-dr-drill.md),
+[load test](docs/runbooks/load-test.md), [game day](docs/runbooks/game-day.md). Expected costs:
+[docs/cost-report.md](docs/cost-report.md) (dev is about $6-7 per day while running; destroy after use).
 
-## Phase 2: supply chain (build, scan, sign, deploy by digest)
-
-| Piece | Where |
-|---|---|
-| ECR repos (immutable tags, scan on push, lifecycle, optional DR replication), Cosign KMS key, GitHub build role | `environments/shared/supply-chain` |
-| Sample backend (Flask, non-root, read-only filesystem) | `apps/backend` |
-| Pipeline: test, build, Trivy gate, SBOM, push, Cosign sign + attest, GitOps PR | `.github/workflows/backend-image.yml` |
-| Argo CD + root app (app of apps) | `environments/dev/platform/argocd.tf`, `gitops/clusters/dev` |
-| Backend manifests (PSA restricted, HPA, probes, digest-pinned) | `gitops/workloads/backend` |
-
-Cost: ECR storage cents, Cosign KMS key $1/month. Argo CD runs on the existing cluster.
-
-```bash
-cp environments/shared/supply-chain/terraform.tfvars.example environments/shared/supply-chain/terraform.tfvars  # set github_org
-cp environments/dev/platform/terraform.tfvars.example environments/dev/platform/terraform.tfvars                # set gitops_repo_url
-cd environments/shared/supply-chain && terraform init -backend-config=../../backend.hcl && terraform plan
-```
-
-One-time GitHub setup (Settings of this repo):
-
-1. Actions > Variables: `AWS_BUILD_ROLE_ARN` = output `github_build_role_arn`.
-2. Actions > General > Workflow permissions: allow GitHub Actions to create pull requests.
-3. If the repo is private, give Argo CD read access (a deploy key or a read-only token as an Argo CD repository secret).
-
-Flow: merge to `main` under `apps/backend/` -> image built, scanned, pushed, signed -> a PR updates the digest in
-`gitops/workloads/backend/overlays/dev` -> merging that PR is the deploy approval -> Argo CD syncs.
+Rules for working in this repo (also for AI assistants): [CLAUDE.md](CLAUDE.md).

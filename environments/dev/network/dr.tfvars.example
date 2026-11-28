@@ -2,3 +2,4 @@
 aws_region  = "eu-central-1"
 environment = "dr"
 vpc_cidr    = "10.21.0.0/16" # Mumbai is 10.20.0.0/16; no overlap, so they could be peered
+availability_zone_ids = ["euc1-az1", "euc1-az2", "euc1-az3"]

@@ -1,5 +1,12 @@
+# Allow-list the zones by ID (Phase 8 hardening): if AWS adds an AZ to the region, the subnet
+# layout must not change silently on the next apply. Zone IDs (aps1-az1) are the same in every
+# account, unlike zone names (ap-south-1a), which AWS maps differently per account.
 data "aws_availability_zones" "available" {
   state = "available"
+  filter {
+    name   = "zone-id"
+    values = var.availability_zone_ids
+  }
 }
 
 module "vpc" {
