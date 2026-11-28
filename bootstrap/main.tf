@@ -37,8 +37,9 @@ resource "aws_s3_bucket" "state" {
   #checkov:skip=CKV_AWS_144:Versioning covers state recovery; cross-region copy not needed: the DR stacks keep their state here too and the bucket is versioned
   #checkov:skip=CKV2_AWS_62:No consumers for bucket events
   bucket = local.state_bucket_name
-  # Bootstrap is never destroyed (CLAUDE.md): Terraform refuses to delete the state bucket, and
-  # even a manual delete fails while it still holds state versions.
+  # Bootstrap is never destroyed in normal use: Terraform refuses to delete the state bucket, and
+  # a delete fails while it holds state versions. (28 Nov 2026 the owner asked for an empty account;
+  # protection was switched off only for that teardown and restored here afterwards.)
   force_destroy = false
 
   lifecycle {
