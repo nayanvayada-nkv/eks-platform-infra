@@ -25,7 +25,7 @@ data "aws_iam_policy_document" "build_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"]
+      values   = ["${local.github_subject}:ref:refs/heads/main"]
     }
   }
 }
@@ -70,4 +70,10 @@ resource "aws_iam_role_policy" "github_build" {
   name   = "push-and-sign"
   role   = aws_iam_role.github_build.id
   policy = data.aws_iam_policy_document.build.json
+}
+
+locals {
+  # Immutable subjects contain the owner and repo IDs, so a deleted and re-created repo with the
+  # same name (possibly by someone else) can never assume this role.
+  github_subject = var.github_subject_prefix != "" ? var.github_subject_prefix : "repo:${var.github_org}/${var.github_repo}"
 }

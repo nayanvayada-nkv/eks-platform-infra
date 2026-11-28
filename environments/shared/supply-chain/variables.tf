@@ -47,3 +47,9 @@ variable "force_delete_repositories" {
   type        = bool
   default     = true
 }
+
+variable "github_subject_prefix" {
+  description = "Start of the GitHub OIDC 'sub' claim. Empty = repo:<org>/<repo>. Repos with immutable subjects (GitHub setting, default for new repos) send repo:<org>@<owner-id>/<repo>@<repo-id>; check with: gh api repos/<org>/<repo>/actions/oidc/customization/sub"
+  type        = string
+  default     = ""
+}
