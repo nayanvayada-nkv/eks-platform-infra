@@ -22,6 +22,22 @@ data "aws_iam_policy_document" "alerts_topic" {
       values   = ["arn:aws:events:${var.aws_region}:${local.account_id}:rule/${local.name}-*"]
     }
   }
+
+  # Amazon Managed Prometheus Alertmanager (Phase 6 SLO and platform alerts).
+  statement {
+    sid       = "ManagedPrometheusPublish"
+    actions   = ["sns:Publish", "sns:GetTopicAttributes"]
+    resources = [aws_sns_topic.alerts.arn]
+    principals {
+      type        = "Service"
+      identifiers = ["aps.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+  }
 }
 
 resource "aws_sns_topic_policy" "alerts" {

@@ -1,0 +1,31 @@
+# Platform health alerts (cluster-wide).
+groups:
+  - name: platform
+    rules:
+      - alert: PodCrashLooping
+        expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }} restarted more than 3 times in 15 minutes"
+      - alert: NodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.node }} is not Ready"
+      - alert: ArgoCdAppOutOfSyncOrDegraded
+        expr: sum by (name) (argocd_app_info{sync_status!="Synced"} or argocd_app_info{health_status="Degraded"}) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Argo CD application {{ $labels.name }} is out of sync or degraded for 15 minutes"
+      - alert: MetricsPipelineDown
+        expr: absent(up{job="kube-state-metrics"})
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: No metrics from the cluster for 10 minutes (Prometheus or remote write broken)

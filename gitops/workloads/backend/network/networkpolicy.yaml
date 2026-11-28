@@ -27,6 +27,13 @@ spec:
         - podSelector: {} # same namespace
       ports:
         - { protocol: TCP, port: 15008 }
+    # Prometheus (monitoring namespace, meshed) scrapes port 9464 over HBONE.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { protocol: TCP, port: 15008 }
     # Kubelet health probes: in ambient mode istio-cni rewrites their source to this
     # link-local address so ztunnel lets them through in plaintext.
     - from:
@@ -59,6 +66,13 @@ spec:
       ports:
         - { protocol: UDP, port: 53 }
         - { protocol: TCP, port: 53 }
+    # Traces to the ADOT collector (monitoring namespace, meshed): HBONE on 15008.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { protocol: TCP, port: 15008 }
     # EKS Pod Identity agent (link-local on every node): where the pod gets its IAM credentials.
     - to:
         - ipBlock:

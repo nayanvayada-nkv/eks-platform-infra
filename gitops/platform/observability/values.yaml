@@ -1,0 +1,2 @@
+region: ap-south-1
+adotImage: public.ecr.aws/aws-observability/aws-otel-collector:v0.51.0

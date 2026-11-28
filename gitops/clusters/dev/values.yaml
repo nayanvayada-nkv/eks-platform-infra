@@ -7,11 +7,15 @@ awsRegion: ap-south-1
 backendConfig: {}
 # Internal ALB behind CloudFront (Terraform edge stack). Empty = gateway not exposed.
 edge: {}
+# Metrics / logs / traces destinations (Terraform observability stack). Empty = not installed.
+observability: {}
 
 # Phase 3 platform components, installed by Argo CD in sync-wave order.
 versions:
   istio: 1.30.8 # base, istiod, cni, ztunnel share one version
   kyverno: 3.10.0 # chart; app v1.20.0
+  kubePrometheusStack: 94.1.0 # Prometheus 3.16, operator 0.95
+  fluentBit: 0.2.1 # aws-for-fluent-bit chart; image 3.2.1 from public.ecr.aws
 
 # Namespaces the Phase 3 policies leave alone (platform components with their own images).
 systemNamespaces:
@@ -23,3 +27,5 @@ systemNamespaces:
   - istio-system
   - istio-ingress # vendor gateway image; reached only through CloudFront -> ALB
   - amazon-guardduty # GuardDuty runtime agent (AWS image), when enabled
+  - monitoring # Prometheus (quay.io), kube-state-metrics, ADOT collector (public.ecr.aws)
+  - logging # Fluent Bit (public.ecr.aws)

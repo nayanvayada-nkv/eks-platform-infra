@@ -1,0 +1,59 @@
+# What Prometheus scrapes besides the cluster basics that kube-prometheus-stack configures.
+# Backend: metrics port 9464 (never exposed through the Service or the gateway).
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: backend
+spec:
+  namespaceSelector:
+    matchNames: [backend]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+---
+# ztunnel: L4 mesh metrics (istio_tcp_*), e.g. proof that connections use mutual TLS.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ztunnel
+spec:
+  namespaceSelector:
+    matchNames: [istio-system]
+  selector:
+    matchLabels:
+      app: ztunnel
+  podMetricsEndpoints:
+    - port: ztunnel-stats
+      path: /metrics
+---
+# Argo CD application sync / health (alert: ArgoCdAppOutOfSyncOrDegraded).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-application-controller
+spec:
+  namespaceSelector:
+    matchNames: [argocd]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+  endpoints:
+    - port: http-metrics
+---
+# Kyverno admission decisions (how many requests were denied, by which policy).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kyverno
+spec:
+  namespaceSelector:
+    matchNames: [kyverno]
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kyverno
+      app.kubernetes.io/component: admission-controller
+  endpoints:
+    - port: metrics-port

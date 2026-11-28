@@ -1,0 +1,95 @@
+# AWS Distro for OpenTelemetry collector: receives OTLP traces from apps, batches them and
+# sends them to AWS X-Ray with its own Pod Identity role (apps never get X-Ray permissions).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      batch: {}
+    exporters:
+      awsxray:
+        region: {{ .Values.region }}
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [awsxray]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  labels:
+    app.kubernetes.io/name: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: otel-collector
+      annotations:
+        checksum/config: {{ .Values | toJson | sha256sum | trunc 16 }}
+    spec:
+      serviceAccountName: otel-collector
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: collector
+          image: {{ .Values.adotImage }}
+          args: ["--config=/conf/config.yaml"]
+          ports:
+            - { name: otlp-http, containerPort: 4318 }
+          readinessProbe:
+            httpGet: { path: /, port: 13133 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: conf, mountPath: /conf }
+      volumes:
+        - name: conf
+          configMap:
+            name: otel-collector
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+spec:
+  selector:
+    app.kubernetes.io/name: otel-collector
+  ports:
+    - { name: otlp-http, port: 4318, targetPort: otlp-http }

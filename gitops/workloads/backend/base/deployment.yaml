@@ -32,9 +32,21 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            - name: metrics # Prometheus only (AuthorizationPolicy); not in the Service
+              containerPort: 9464
           envFrom:
             - configMapRef:
                 name: backend-config
+          env:
+            # Traces -> ADOT collector (monitoring namespace) -> AWS X-Ray. 25% of new traces sampled.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.monitoring.svc.cluster.local:4318
+            - name: OTEL_SERVICE_NAME
+              value: backend
+            - name: OTEL_TRACES_SAMPLER
+              value: parentbased_traceidratio
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: "0.25"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

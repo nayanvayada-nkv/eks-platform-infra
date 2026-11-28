@@ -23,9 +23,10 @@ RUN apt-get update \
  && useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 COPY --from=build /venv /venv
 WORKDIR /app
-COPY app.py store.py aws_auth.py migrate.py ./
+COPY app.py store.py aws_auth.py migrate.py telemetry.py gunicorn.conf.py ./
 COPY certs/ certs/
 USER 10001
-EXPOSE 8080
-# /tmp is an emptyDir in Kubernetes so the root filesystem can stay read-only.
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--worker-tmp-dir", "/tmp", "--access-logfile", "-", "app:app"]
+EXPOSE 8080 9464
+# /tmp is an emptyDir in Kubernetes so the root filesystem can stay read-only
+# (gunicorn worker files and the merged Prometheus metrics live there).
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "app:app"]

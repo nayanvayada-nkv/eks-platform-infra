@@ -1,0 +1,54 @@
+# Backend SLOs (evaluated in Amazon Managed Prometheus, tested by backend-slo.test.yaml).
+#   Availability: 99.5% of requests are not 5xx, over 30 days (error budget 0.5%, ~3.6 h/month).
+#   Latency:      95% of requests finish within 500 ms.
+# Multi-window, multi-burn-rate alerts (Google SRE workbook): page when the budget burns
+# 14.4x too fast (2% of the month's budget in 1 h), ticket when it burns 6x (5% in 6 h).
+# The short window stops the alert quickly once the problem is fixed.
+groups:
+  - name: backend-slo-recording
+    interval: 1m
+    rules:
+      - record: slo:backend_requests:rate5m
+        expr: sum(rate(http_requests_total{namespace="backend"}[5m]))
+      - record: slo:backend_errors:ratio_rate5m
+        expr: sum(rate(http_requests_total{namespace="backend",status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="backend"}[5m]))
+      - record: slo:backend_errors:ratio_rate30m
+        expr: sum(rate(http_requests_total{namespace="backend",status=~"5.."}[30m])) / sum(rate(http_requests_total{namespace="backend"}[30m]))
+      - record: slo:backend_errors:ratio_rate1h
+        expr: sum(rate(http_requests_total{namespace="backend",status=~"5.."}[1h])) / sum(rate(http_requests_total{namespace="backend"}[1h]))
+      - record: slo:backend_errors:ratio_rate6h
+        expr: sum(rate(http_requests_total{namespace="backend",status=~"5.."}[6h])) / sum(rate(http_requests_total{namespace="backend"}[6h]))
+      - record: slo:backend_latency:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="backend"}[5m])))
+
+  - name: backend-slo-alerts
+    rules:
+      - alert: BackendErrorBudgetBurnFast
+        expr: slo:backend_errors:ratio_rate1h > (14.4 * 0.005) and slo:backend_errors:ratio_rate5m > (14.4 * 0.005)
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Backend is burning its 30-day error budget 14x too fast
+          description: "{{ $value | humanizePercentage }} of requests failed over the last hour (SLO allows 0.5%)."
+      - alert: BackendErrorBudgetBurnSlow
+        expr: slo:backend_errors:ratio_rate6h > (6 * 0.005) and slo:backend_errors:ratio_rate30m > (6 * 0.005)
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Backend error budget is burning 6x too fast
+      - alert: BackendLatencySLO
+        expr: slo:backend_latency:p95_5m > 0.5 and slo:backend_requests:rate5m > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Backend p95 latency above 500 ms
+      - alert: BackendDown
+        expr: sum(kube_deployment_status_replicas_available{namespace="backend",deployment="backend"}) < 1 or absent(kube_deployment_status_replicas_available{namespace="backend",deployment="backend"})
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: No backend pod is available

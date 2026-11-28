@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$ROOT/scripts/check-bootstrap.sh"
-STACKS=(environments/dev/network environments/dev/eks environments/dev/data environments/dev/edge environments/dev/platform)
+STACKS=(environments/dev/network environments/dev/eks environments/dev/data environments/dev/edge environments/dev/observability environments/dev/platform)
 for S in "${STACKS[@]}"; do
   if [ -d "$ROOT/$S" ]; then
     echo "==> $S"
