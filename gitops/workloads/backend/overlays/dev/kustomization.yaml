@@ -2,15 +2,15 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: backend
 resources:
-  - namespace.yaml
-  - ../../base
-  - ../../network
-  - ../../migrate
-  - ../../routing
-  - ../../tenants
+- namespace.yaml
+- ../../base
+- ../../network
+- ../../migrate
+- ../../routing
+- ../../tenants
 # CI (backend-image workflow) rewrites this block with the signed ECR digest
 # and opens a pull request. Until the first build, pods cannot pull this placeholder.
 images:
-  - name: backend
-    newName: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/eks-platform/backend
-    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+- digest: sha256:845806222517b2da74b0b54e8f72bfb8eba4a4e9feec36153bd4dbb7f2fedf3c
+  name: backend
+  newName: 464243369696.dkr.ecr.ap-south-1.amazonaws.com/eks-platform/backend
