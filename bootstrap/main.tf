@@ -165,8 +165,8 @@ data "aws_iam_policy_document" "github_plan_trust" {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
-        "repo:${var.github_org}/${var.github_repo}:pull_request",
-        "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
+        "${local.github_subject}:pull_request",
+        "${local.github_subject}:ref:refs/heads/main",
       ]
     }
   }
@@ -213,3 +213,9 @@ resource "aws_iam_role_policy" "plan_state_access" {
 }
 
 # The scoped "apply" role (main branch only) is added in Phase 1.
+
+locals {
+  # Immutable subjects contain the owner and repo IDs, so a deleted and re-created repo with the
+  # same name (possibly by someone else) can never assume this role.
+  github_subject = var.github_subject_prefix != "" ? var.github_subject_prefix : "repo:${var.github_org}/${var.github_repo}"
+}
