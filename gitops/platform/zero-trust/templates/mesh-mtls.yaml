@@ -1,0 +1,10 @@
+# Mesh-wide strict mTLS: in ambient mode ztunnel refuses plaintext traffic to meshed pods.
+# Workload identity is the SPIFFE ID of the service account, used by AuthorizationPolicy.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system # root namespace = applies to the whole mesh
+spec:
+  mtls:
+    mode: STRICT

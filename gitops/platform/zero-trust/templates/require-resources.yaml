@@ -1,0 +1,19 @@
+# Every container declares CPU/memory requests and a memory limit. Requests let Karpenter
+# size nodes and the HPA compute utilisation; the memory limit stops one pod starving a node.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-resources
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  validationActions: {{ toJson .Values.validationActions }}
+  failurePolicy: Fail
+  {{- include "zt.podMatch" . | nindent 2 }}
+  validations:
+    - expression: >-
+        object.spec.containers.all(c,
+          has(c.resources) && has(c.resources.requests)
+          && 'cpu' in c.resources.requests && 'memory' in c.resources.requests
+          && has(c.resources.limits) && 'memory' in c.resources.limits)
+      message: every container needs requests.cpu, requests.memory and limits.memory

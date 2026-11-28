@@ -86,3 +86,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_network_policy" {
+  description = "Let the VPC CNI enforce Kubernetes NetworkPolicy. Without it, NetworkPolicy objects are accepted but ignored."
+  type        = bool
+  default     = true
+}

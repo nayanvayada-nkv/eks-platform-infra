@@ -1,3 +1,19 @@
-# Set by the root Application (Terraform variable gitops_repo_url).
+# Set by the root Application (environments/dev/platform/argocd.tf).
 repoURL: ""
 targetRevision: main
+awsAccountId: ""
+awsRegion: ap-south-1
+
+# Phase 3 platform components, installed by Argo CD in sync-wave order.
+versions:
+  istio: 1.30.8 # base, istiod, cni, ztunnel share one version
+  kyverno: 3.10.0 # chart; app v1.20.0
+
+# Namespaces the Phase 3 policies leave alone (platform components with their own images).
+systemNamespaces:
+  - kube-system
+  - kube-public
+  - kube-node-lease
+  - argocd
+  - kyverno
+  - istio-system

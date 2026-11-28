@@ -3,6 +3,8 @@ kind: Namespace
 metadata:
   name: backend
   labels:
-    # Kubernetes refuses pods that break the "restricted" profile (Phase 3 adds Kyverno on top).
+    # Kubernetes refuses pods that break the "restricted" profile (Kyverno adds more rules on top).
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/warn: restricted
+    # Ambient mesh: ztunnel gives every pod here an mTLS identity, no sidecar needed.
+    istio.io/dataplane-mode: ambient

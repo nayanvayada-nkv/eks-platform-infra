@@ -1,0 +1,32 @@
+{{- /*
+Cluster-wide Zero Trust rules (gitops/platform/zero-trust): Kyverno policies and
+mesh-wide strict mTLS. Runs after Kyverno and Istio are Healthy.
+*/ -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zero-trust
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ required "repoURL is required" .Values.repoURL | quote }}
+    targetRevision: {{ .Values.targetRevision | quote }}
+    path: gitops/platform/zero-trust
+    helm:
+      valuesObject:
+        awsAccountId: {{ required "awsAccountId is required" .Values.awsAccountId | quote }}
+        awsRegion: {{ .Values.awsRegion | quote }}
+        systemNamespaces:
+          {{- toYaml .Values.systemNamespaces | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

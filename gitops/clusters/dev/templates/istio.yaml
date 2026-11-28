@@ -1,0 +1,49 @@
+{{- /*
+Istio in ambient mode (ADR 0006): no sidecars. ztunnel on every node gives mTLS (HBONE)
+and L4 AuthorizationPolicy; istio-cni redirects pod traffic into ztunnel.
+Order: base (CRDs) -> istiod + cni -> ztunnel.
+*/ -}}
+{{- $apps := list
+  (dict "name" "istio-base" "chart" "base"    "wave" "-3" "values" (dict "defaultRevision" "default"))
+  (dict "name" "istiod"     "chart" "istiod"  "wave" "-2" "values" (dict "profile" "ambient" "autoscaleEnabled" false "replicaCount" 1 "resources" (dict "requests" (dict "cpu" "100m" "memory" "256Mi"))))
+  (dict "name" "istio-cni"  "chart" "cni"     "wave" "-2" "values" (dict "profile" "ambient"))
+  (dict "name" "ztunnel"    "chart" "ztunnel" "wave" "-1" "values" (dict))
+}}
+{{- range $apps }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .name }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .wave | quote }}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: {{ .chart }}
+    targetRevision: {{ $.Values.versions.istio | quote }}
+    helm:
+      releaseName: {{ .name }}
+      valuesObject:
+        {{- toYaml .values | nindent 8 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+  # istiod patches its own webhook's failurePolicy at runtime; without this Argo CD loops.
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.failurePolicy
+{{- end }}

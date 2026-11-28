@@ -268,6 +268,11 @@ resource "aws_eks_addon" "before_nodes" {
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
   tags                        = var.tags
+
+  # VPC CNI enforces Kubernetes NetworkPolicy (eBPF agent on each node). Off by default.
+  configuration_values = each.value == "vpc-cni" ? jsonencode({
+    enableNetworkPolicy = tostring(var.enable_network_policy)
+  }) : null
 }
 
 resource "aws_eks_addon" "coredns" {

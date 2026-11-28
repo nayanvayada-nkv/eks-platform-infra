@@ -1,0 +1,9 @@
+# Network and mesh rules for the backend namespace. Kept out of ../base on purpose:
+# base adds labels with includeSelectors, which would also rewrite the NetworkPolicy
+# selectors (default-deny would stop covering every pod, and DNS egress would point at
+# pods labelled "backend" in kube-system, i.e. nothing).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - networkpolicy.yaml
+  - authorizationpolicy.yaml

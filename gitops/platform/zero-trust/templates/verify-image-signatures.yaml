@@ -1,0 +1,45 @@
+# Only images built by our pipeline may run: signed with the Cosign KMS key AND carrying
+# the signed SPDX SBOM attestation. This is the Phase 3 proof ("unsigned image rejected").
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: verify-image-signatures
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  validationActions: {{ toJson .Values.validationActions }}
+  failurePolicy: Fail # if Kyverno cannot check (KMS/ECR down), the pod is refused: fail closed
+  {{- include "zt.podMatch" . | nindent 2 }}
+  webhookConfiguration:
+    timeoutSeconds: 15 # KMS + ECR round trips
+  evaluation:
+    background:
+      enabled: false # admission only; avoids calling ECR/KMS for every existing pod
+  matchImageReferences:
+    - glob: {{ printf "%s*" (include "zt.registry" .) | quote }}
+  credentials:
+    providers: [amazon] # ECR token from the Pod Identity role
+  validationConfigurations:
+    required: true
+    verifyDigest: true # tags are mutable; only image@sha256 references pass
+    mutateDigest: false # never rewrite: Git already holds the digest, and Argo CD would see drift
+  images:
+    - name: initContainers
+      expression: "object.spec.?initContainers.orValue([]).map(c, c.image)"
+  attestors:
+    - name: cosign
+      cosign:
+        key:
+          kms: {{ .Values.cosignKeyRef | quote }}
+  attestations:
+    - name: sbom
+      intoto:
+        type: https://spdx.dev/Document # cosign attest --type spdxjson
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyImageSignatures(image, [attestors.cosign])).all(e, e > 0)
+        && images.initContainers.map(image, verifyImageSignatures(image, [attestors.cosign])).all(e, e > 0)
+      message: image is not signed with the project Cosign key (only CI-built images may run)
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.sbom, [attestors.cosign])).all(e, e > 0)
+      message: image has no signed SBOM attestation
