@@ -1,0 +1,2 @@
+# Copy to terraform.tfvars.
+gitops_repo_url = "https://github.com/CHANGE_ME/eks-platform-infra.git"

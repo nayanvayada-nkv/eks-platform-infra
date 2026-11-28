@@ -1,0 +1,7 @@
+# App of apps for the dev cluster. The root Application (environments/dev/platform)
+# renders this chart; each template is one Argo CD Application.
+apiVersion: v2
+name: dev-apps
+description: Argo CD Applications for the dev cluster
+type: application
+version: 0.1.0

@@ -1,0 +1,3 @@
+# Set by the root Application (Terraform variable gitops_repo_url).
+repoURL: ""
+targetRevision: main

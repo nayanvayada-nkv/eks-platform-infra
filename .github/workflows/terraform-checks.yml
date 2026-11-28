@@ -1,0 +1,53 @@
+name: terraform-checks
+
+on:
+  pull_request:
+    paths:
+      - "**.tf"
+      - "**.hcl"
+      - ".github/workflows/terraform-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: terraform validate (every stack and module)
+        run: |
+          for d in bootstrap modules/* environments/*/*; do
+            [ -n "$(ls "$d"/*.tf 2>/dev/null)" ] || continue
+            echo "::group::$d"
+            terraform -chdir="$d" init -backend=false -input=false
+            terraform -chdir="$d" validate
+            echo "::endgroup::"
+          done
+
+      - uses: terraform-linters/setup-tflint@v4
+
+      - name: tflint
+        run: |
+          tflint --init --config="$GITHUB_WORKSPACE/.tflint.hcl"
+          tflint --recursive --config="$GITHUB_WORKSPACE/.tflint.hcl"
+
+      - name: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          quiet: true
+          soft_fail: true # switch to false once findings are triaged
+
+  # Phase 1: add a `plan` job here that assumes vars.AWS_PLAN_ROLE_ARN via OIDC
+  # (permissions: id-token: write) and runs terraform plan per changed stack.

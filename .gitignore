@@ -1,0 +1,32 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# Keep the lock file in Git
+!.terraform.lock.hcl
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+# Secrets - never commit
+*.pem
+*.key
+.env
+# Per-account backend settings (copy of environments/backend.hcl.example)
+environments/backend.hcl
+# Python
+__pycache__/
+.pytest_cache/
+.venv/
+# Reusable modules do not pin providers; only root stacks keep a lock file
+modules/**/.terraform.lock.hcl
