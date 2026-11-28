@@ -17,7 +17,7 @@ output "backend_config" {
 }
 
 output "aurora_engine_version" {
-  value = local.cluster.engine_version_actual
+  value = local.cluster.engine_version
 }
 
 # Read by the DR (secondary) data stack and by scripts/dr-drill.sh.

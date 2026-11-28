@@ -1,0 +1,10 @@
+# Trivy exceptions for the backend image. Every entry needs a reason and a narrow scope.
+secrets:
+  # False positive (first CI run, 28 Nov 2026): the gcp-service-account rule matches the
+  # Anthropic SDK's own docstrings, which show the example value {"type": "service_account"}
+  # for the Managed Agents `execution_identity` field. No credential exists in these files.
+  # Scope: this one rule, only inside the installed anthropic package.
+  - id: gcp-service-account
+    paths:
+      - "/venv/lib/python3.*/site-packages/anthropic/**"
+    statement: SDK documentation example, not a credential (reviewed 2026-11-28)

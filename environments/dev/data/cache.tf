@@ -4,16 +4,22 @@
 # TLS is always on for serverless caches; login is by IAM token, not a shared password.
 # ---------------------------------------------------------------------------
 
-# ElastiCache needs a user called "default" in every user group. Ours can never log in.
-resource "aws_elasticache_user" "default" {
-  user_id       = "${local.name}-default"
-  user_name     = "default"
-  engine        = "valkey"
-  access_string = "off -@all"
+# ElastiCache needs a user called "default" in every user group. Ours can never log in
+# (access string "off"). Valkey refuses "no password required" even for a disabled user (first
+# real apply), so it gets a random password that is written once and never stored: ephemeral
+# value + write-only argument, same pattern as the Aurora admin password.
+ephemeral "random_password" "cache_default" {
+  length  = 32
+  special = false
+}
 
-  authentication_mode {
-    type = "no-password-required" # irrelevant: the user is "off"
-  }
+resource "aws_elasticache_user" "default" {
+  user_id              = "${local.name}-default"
+  user_name            = "default"
+  engine               = "valkey"
+  access_string        = "off -@all"
+  passwords_wo         = ephemeral.random_password.cache_default.result
+  passwords_wo_version = 1 # implies password authentication; the user stays "off"
 }
 
 # For IAM authentication the user id and user name must be identical.
