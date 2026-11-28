@@ -32,6 +32,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: backend-config
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -47,8 +50,11 @@ spec:
             httpGet: { path: /healthz, port: http }
             periodSeconds: 2
             failureThreshold: 30
+          # Ready only when Aurora and Valkey answer; liveness stays on /healthz so a
+          # database outage removes pods from the Service instead of restarting them.
           readinessProbe:
-            httpGet: { path: /healthz, port: http }
+            httpGet: { path: /readyz, port: http }
+            timeoutSeconds: 12 # first query may wake Aurora from 0 ACU
             periodSeconds: 5
           livenessProbe:
             httpGet: { path: /healthz, port: http }

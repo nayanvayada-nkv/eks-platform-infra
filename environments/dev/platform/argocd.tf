@@ -70,6 +70,9 @@ resource "kubectl_manifest" "argocd_root_app" {
             # but kept out of Git so the repo works for any account).
             awsAccountId = data.aws_caller_identity.current.account_id
             awsRegion    = var.aws_region
+            # Phase 4: database/cache endpoints for the backend, and who may reach the ALB.
+            backendConfig       = data.terraform_remote_state.data.outputs.backend_config
+            ingressAllowedCidrs = var.ingress_allowed_cidrs
           }
         }
       }

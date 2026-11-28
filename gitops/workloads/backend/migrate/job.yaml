@@ -1,0 +1,50 @@
+# Runs on every sync before the new pods (Argo CD Sync hook, wave -1). Idempotent: creates the
+# IAM-login role "app", the items table and least-privilege grants. Same signed image as the API.
+# In ambient mode the Job finishes normally (with sidecars, the proxy kept Jobs running forever).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app.kubernetes.io/name: backend-migrate
+    app.kubernetes.io/part-of: eks-platform
+spec:
+  backoffLimit: 4
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backend-migrate
+        app.kubernetes.io/part-of: eks-platform
+    spec:
+      serviceAccountName: db-migrate
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: backend # replaced by the overlay with the signed ECR digest
+          command: ["python", "migrate.py"]
+          envFrom:
+            - configMapRef:
+                name: backend-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

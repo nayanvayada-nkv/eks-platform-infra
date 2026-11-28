@@ -13,6 +13,18 @@ spec:
     repoURL: {{ required "repoURL is required" .Values.repoURL | quote }}
     targetRevision: {{ .Values.targetRevision | quote }}
     path: gitops/workloads/backend/overlays/dev
+    {{- with .Values.backendConfig }}
+    kustomize:
+      patches:
+        # Real Aurora / Valkey endpoints from Terraform; Git keeps placeholders.
+        - target:
+            kind: ConfigMap
+            name: backend-config
+          patch: |-
+            - op: replace
+              path: /data
+              value: {{ toJson . }}
+    {{- end }}
   destination:
     server: https://kubernetes.default.svc
     namespace: backend

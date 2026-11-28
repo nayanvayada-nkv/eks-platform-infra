@@ -16,6 +16,16 @@ data "terraform_remote_state" "eks" {
   }
 }
 
+# Phase 4: Aurora / Valkey endpoints for the backend (no secrets in these outputs).
+data "terraform_remote_state" "data" {
+  backend = "s3"
+  config = {
+    bucket = local.state_bucket
+    key    = "nonprod/dev/ap-south-1/data/terraform.tfstate"
+    region = var.aws_region
+  }
+}
+
 locals {
   # Controllers run on the managed system nodes, never on nodes they manage.
   system_node_selector = { "node-role/system" = "true" }

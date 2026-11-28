@@ -15,6 +15,8 @@ module "vpc" {
 
   single_nat_gateway = true
 
-  # Dev: S3 gateway endpoint only (free). Prod: add ecr.api, ecr.dkr, sts, logs, ssm, ...
-  interface_endpoints = []
+  # S3 gateway endpoint is free. Secrets Manager (Phase 4): the db-migrate job reads the Aurora
+  # admin secret over a private endpoint, so its NetworkPolicy needs no internet egress
+  # (~$0.04/hour for 3 AZs; dev is destroyed after each run). Prod: add ecr.api, ecr.dkr, sts, logs, ssm.
+  interface_endpoints = ["secretsmanager"]
 }

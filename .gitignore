@@ -20,6 +20,8 @@ terraform.rc
 .DS_Store
 # Secrets - never commit
 *.pem
+# Exception: public Amazon RDS CA certificates (no keys), used for sslmode=verify-full.
+!apps/backend/certs/rds-global-bundle.pem
 *.key
 .env
 # Per-account backend settings (copy of environments/backend.hcl.example)

@@ -13,6 +13,7 @@ systemNamespaces:
   - argocd
   - kyverno
   - istio-system
+  - istio-ingress
 
 # Deny (enforce) or Audit (report only). Start a new rule in Audit, then switch to Deny.
 validationActions: [Deny]

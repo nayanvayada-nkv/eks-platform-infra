@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars only if you want to change defaults (all variables have dev defaults).
+# aurora_max_acu      = 2
+# deletion_protection = false
