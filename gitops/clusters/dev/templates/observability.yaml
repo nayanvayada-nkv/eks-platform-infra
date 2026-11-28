@@ -35,6 +35,11 @@ spec:
         kubeScheduler: { enabled: false }
         kubeEtcd: { enabled: false }
         kubeProxy: { enabled: false }
+        # Per-node agents must win a slot on every node: t3.medium system nodes hold only 17
+        # pod IPs (VPC CNI), and on the first run node-exporter stayed Pending ("Too many pods").
+        # With this priority the scheduler moves an ordinary pod to a Karpenter node instead.
+        prometheus-node-exporter:
+          priorityClassName: system-node-critical
         prometheusOperator:
           admissionWebhooks:
             enabled: false # avoids cert-generation hook Jobs; rules are validated by promtool in Git
@@ -99,6 +104,7 @@ spec:
     helm:
       releaseName: fluent-bit
       valuesObject:
+        priorityClassName: system-node-critical # log agent must run on every node (see node-exporter)
         serviceAccount:
           create: true
           name: fluent-bit # Pod Identity: write to one log group only

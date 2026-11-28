@@ -42,6 +42,11 @@ module "karpenter" {
   cluster_name = module.eks.cluster_name
   namespace    = "kube-system"
 
+  # The controller policy JSON is larger than the 6,144-character limit for managed IAM
+  # policies (apply failed with LimitExceeded on the first real run). Inline role policies
+  # allow 10,240 characters; the permissions are identical.
+  enable_inline_policy = true
+
   # Karpenter-launched nodes get SSM access too (no SSH keys).
   node_iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"

@@ -16,7 +16,15 @@ locals {
   # Global databases cannot auto-pause (AWS docs), so the floor is 0.5 ACU while DR is on.
   min_acu       = local.global || !local.is_primary ? 0.5 : 0
   pause_seconds = local.global || !local.is_primary ? null : var.aurora_auto_pause_seconds
-  cluster       = one(concat(aws_rds_cluster.primary, aws_rds_cluster.secondary))
+  # Read only the non-secret attributes, one by one. Taking the whole aws_rds_cluster object
+  # would carry its sensitive (password) attributes along and mark every output as sensitive.
+  cluster = {
+    endpoint            = one(concat(aws_rds_cluster.primary[*].endpoint, aws_rds_cluster.secondary[*].endpoint))
+    port                = one(concat(aws_rds_cluster.primary[*].port, aws_rds_cluster.secondary[*].port))
+    arn                 = one(concat(aws_rds_cluster.primary[*].arn, aws_rds_cluster.secondary[*].arn))
+    cluster_resource_id = one(concat(aws_rds_cluster.primary[*].cluster_resource_id, aws_rds_cluster.secondary[*].cluster_resource_id))
+    engine_version      = one(concat(aws_rds_cluster.primary[*].engine_version_actual, aws_rds_cluster.secondary[*].engine_version_actual))
+  }
 }
 
 resource "aws_db_subnet_group" "this" {
@@ -31,8 +39,9 @@ resource "aws_rds_cluster_parameter_group" "this" {
   description = "TLS required, connections logged"
 
   parameter {
-    name  = "rds.force_ssl"
-    value = "1" # plaintext connections are refused
+    name         = "rds.force_ssl"
+    value        = "1"              # plaintext connections are refused
+    apply_method = "pending-reboot" # how AWS stores this parameter; avoids a no-op diff on every plan
   }
 
   parameter {

@@ -79,6 +79,8 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           vuln-type: os,library
+          # Reviewed, narrowly scoped exceptions with reasons (apps/backend/.trivyignore.yaml).
+          trivyignores: apps/backend/.trivyignore.yaml
           exit-code: "1"
           format: table
 

@@ -10,11 +10,11 @@ output "collectors_config" {
 }
 
 output "grafana_url" {
-  value = "https://${aws_grafana_workspace.this.endpoint}"
+  value = var.grafana_enabled ? "https://${aws_grafana_workspace.this[0].endpoint}" : ""
 }
 
 output "grafana_dashboards_token" {
   description = "Short-lived token for scripts/grafana-dashboards.sh."
-  value       = aws_grafana_workspace_service_account_token.dashboards.key
+  value       = var.grafana_enabled ? aws_grafana_workspace_service_account_token.dashboards[0].key : ""
   sensitive   = true
 }

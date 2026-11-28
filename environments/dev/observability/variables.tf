@@ -46,3 +46,9 @@ variable "grafana_version" {
   type        = string
   default     = null
 }
+
+variable "grafana_enabled" {
+  description = "Create the Amazon Managed Grafana workspace. Managed Grafana is not offered in ap-south-1 (found on the first run), so it needs a supported region; off until that is decided."
+  type        = bool
+  default     = true
+}
