@@ -12,8 +12,8 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
 | `environments/dev/<stack>` | Deployed dev stacks, one state file each: `network` -> `eks` -> `data` -> `edge` -> `observability` -> `platform`. |
 | `environments/shared/<stack>` | Shared, long-lived stacks (`supply-chain`: ECR, Cosign KMS key, build role; `security`: GuardDuty, Security Hub, Config, alerts, budget). |
 | `gitops/` | What Argo CD deploys: app-of-apps chart (`clusters/dev`), cluster-wide Zero Trust policies (`platform/zero-trust`) and workloads (Kustomize). |
-| `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`), DR (`up-dr.sh`, `destroy-dr.sh`, `dr-drill.sh`), `grafana-dashboards.sh`, `new-tenant-key.sh`. |
-| `docs/` | Roadmap, ADRs, architecture, runbooks, session logs, study guides. |
+| `scripts/` | Bash wrappers for Terraform (`tf.sh`, `up-dev.sh`, `destroy-dev.sh`, `check-bootstrap.sh`), DR (`up-dr.sh`, `destroy-dr.sh`, `dr-drill.sh`), `grafana-dashboards.sh`, `new-tenant-key.sh`, `fde-load-docs.sh`. |
+| `docs/` | Roadmap, ADRs, architecture, runbooks, session logs, study guides, FDE engagement (`docs/fde`, fictional customer). |
 | `apps/` | Application source (`backend`), built by `.github/workflows/backend-image.yml`. |
 
 ## Decisions
