@@ -9,7 +9,7 @@ running in the cluster, and a supply chain where only scanned, signed images can
 > Only Phase 0 has ever been applied to AWS. Nothing else is proven on AWS until the test run in
 > [docs/runbooks/phase1-2-test-run.md](docs/runbooks/phase1-2-test-run.md) succeeds.
 
-Target diagram: [docs/architecture.webp](docs/architecture.webp), mapped box by box in
+Full architecture as built: [docs/architecture-full.png](docs/architecture-full.png). Original target diagram: [docs/architecture.webp](docs/architecture.webp), mapped box by box in
 [docs/architecture.md](docs/architecture.md). Plan and status: [docs/roadmap.md](docs/roadmap.md).
 
 ## What is in it

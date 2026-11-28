@@ -38,3 +38,7 @@ backend.hcl
 # Load test virtualenv and results (Phase 8)
 loadtest/.venv/
 loadtest/results/
+
+# Generated guide HTML (PDFs are committed)
+docs/guides/html/
+docs/guides/eks-platform-guides.zip
