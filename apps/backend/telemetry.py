@@ -20,6 +20,8 @@ LATENCY = Histogram(
     ["method", "route"],
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10),
 )
+LLM_TOKENS = Counter("rag_llm_tokens_total", "Claude tokens used by /ask", ["type"])
+LLM_REFUSALS = Counter("rag_llm_refusals_total", "Requests the model (and its fallback) declined")
 SKIP = {"/healthz", "/readyz"}  # probes would drown the SLO in easy successes
 
 
@@ -63,3 +65,11 @@ def _tracing(app: Flask) -> None:
     FlaskInstrumentor().instrument_app(app, excluded_urls="healthz,readyz")
     PsycopgInstrumentor().instrument()  # SQL statements become spans (parameters are not recorded)
     RedisInstrumentor().instrument()
+
+
+def record_llm_usage(usage: dict, refused: bool) -> None:
+    """Token counters feed the cost panel and an alert on unusual spend (Phase 9)."""
+    for kind in ("input_tokens", "output_tokens"):
+        LLM_TOKENS.labels(kind.removesuffix("_tokens")).inc(usage.get(kind, 0))
+    if refused:
+        LLM_REFUSALS.inc()

@@ -17,3 +17,4 @@ data:
   CACHE_PORT: "6379"
   CACHE_NAME: set-by-argocd
   CACHE_USER: set-by-argocd
+  EMBED_MODEL: amazon.titan-embed-text-v2:0

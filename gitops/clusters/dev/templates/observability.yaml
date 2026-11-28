@@ -66,7 +66,7 @@ spec:
                 writeRelabelConfigs:
                   - sourceLabels: [__name__]
                     action: keep
-                    regex: "up|http_request.*|kube_(deployment|pod|node|namespace|horizontalpodautoscaler)_.*|node_(cpu_seconds_total|memory_MemAvailable_bytes|memory_MemTotal_bytes|filesystem_avail_bytes|filesystem_size_bytes)|container_(cpu_usage_seconds_total|memory_working_set_bytes)|argocd_app_info|istio_tcp_.*|kyverno_admission_.*|kyverno_policy_results_total|otelcol_exporter_.*"
+                    regex: "up|http_request.*|kube_(deployment|pod|node|namespace|horizontalpodautoscaler)_.*|node_(cpu_seconds_total|memory_MemAvailable_bytes|memory_MemTotal_bytes|filesystem_avail_bytes|filesystem_size_bytes)|container_(cpu_usage_seconds_total|memory_working_set_bytes)|argocd_app_info|istio_tcp_.*|kyverno_admission_.*|kyverno_policy_results_total|otelcol_exporter_.*|rag_.*"
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

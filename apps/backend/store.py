@@ -1,5 +1,6 @@
 """Data access: Aurora PostgreSQL (source of truth) and Valkey (read cache)."""
 
+import hashlib
 import json
 import os
 import time
@@ -12,6 +13,7 @@ from aws_auth import TOKEN_TTL_SECONDS, aurora_token, elasticache_token
 CA_BUNDLE = os.path.join(os.path.dirname(__file__), "certs", "rds-global-bundle.pem")
 CACHE_KEY = "backend:items"  # the Valkey user may only touch keys under "backend:"
 CACHE_SECONDS = 30
+ANSWER_CACHE_SECONDS = 600
 
 
 class ValkeyIamCredentials(redis.CredentialProvider):
@@ -76,3 +78,59 @@ class AwsStore:
         with self._db() as conn:
             conn.execute("SELECT 1")
         self.cache.ping()
+
+    # ------------------------------------------------------------------ Phase 9: tenants + RAG
+
+    def tenant_for_key(self, api_key: str):
+        """Tenants are identified by API key; only its SHA-256 is stored (see migrate.py)."""
+        digest = hashlib.sha256(api_key.encode()).hexdigest()
+        with self._db() as conn:
+            row = conn.execute(
+                "SELECT id FROM tenants WHERE api_key_sha256 = %s AND enabled", (digest,)
+            ).fetchone()
+        return row[0] if row else None
+
+    def _tenant_tx(self, conn, tenant_id: str):
+        # Row-level security reads this setting; "true" = local to this transaction only,
+        # so a pooled connection can never carry one tenant's id into another request.
+        conn.execute("SELECT set_config('app.tenant_id', %s, true)", (tenant_id,))
+
+    def add_chunks(self, tenant_id: str, title: str, chunks: list[tuple[str, str]]):
+        """chunks: (content, pgvector literal). Returns the number stored."""
+        with self._db() as conn, conn.transaction():
+            self._tenant_tx(conn, tenant_id)
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "INSERT INTO documents (tenant_id, title, chunk_index, content, embedding)"
+                    " VALUES (%s, %s, %s, %s, %s::vector)",
+                    [(tenant_id, title, i, content, vec) for i, (content, vec) in enumerate(chunks)],
+                )
+        # Cached answers for this tenant may now be stale; they expire within ANSWER_CACHE_SECONDS
+        # (Valkey ACL forbids KEYS/SCAN-style bulk deletes for the app user, on purpose).
+        return len(chunks)
+
+    def search(self, tenant_id: str, query_vector: str, k: int):
+        with self._db() as conn, conn.transaction():
+            self._tenant_tx(conn, tenant_id)
+            # With a tenant filter (RLS) the HNSW index may return fewer than k rows;
+            # iterative scans (pgvector 0.8+) keep searching until k matching rows are found.
+            conn.execute("SET LOCAL hnsw.iterative_scan = relaxed_order")
+            rows = conn.execute(
+                "SELECT title, content, embedding <=> %s::vector AS distance"
+                " FROM documents ORDER BY embedding <=> %s::vector LIMIT %s",
+                (query_vector, query_vector, k),
+            ).fetchall()
+        return [{"title": r[0], "content": r[1], "distance": float(r[2])} for r in rows]
+
+    @staticmethod
+    def _answers_prefix(tenant_id: str) -> str:
+        return f"backend:ask:{tenant_id}:"
+
+    def cached_answer(self, tenant_id: str, question: str):
+        key = self._answers_prefix(tenant_id) + hashlib.sha256(question.encode()).hexdigest()
+        cached = self.cache.get(key)
+        return json.loads(cached) if cached else None
+
+    def cache_answer(self, tenant_id: str, question: str, answer: dict):
+        key = self._answers_prefix(tenant_id) + hashlib.sha256(question.encode()).hexdigest()
+        self.cache.set(key, json.dumps(answer), ex=ANSWER_CACHE_SECONDS)

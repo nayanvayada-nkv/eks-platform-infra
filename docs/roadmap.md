@@ -11,7 +11,7 @@
 | 6 | (code written) Observability: Prometheus -> AMP, Amazon Managed Grafana, Fluent Bit -> CloudWatch, OTel -> X-Ray, burn-rate SLO alerts | Dashboards + alert test |
 | 7 | (code written) Multi-region DR: Frankfurt pilot light (same stacks in a `dr` workspace), Aurora Global DB, ECR + Cosign key replication, drill script | Failover test with measured RTO / RPO |
 | 8 | Hardening and proof: game day, cost report, README, demo video, blog posts | Public write-ups |
-| 9 | Vector DB + RAG (in scope, will be built): tenant-filtered semantic search, private endpoint + KMS. Option to decide: pgvector vs OpenSearch vs Qdrant | Working RAG query on the platform, cost noted |
+| 9 | (code written) Vector DB + RAG: pgvector on Aurora (HNSW, row-level security per tenant), Titan embeddings + Claude on Amazon Bedrock with citations, tenants onboarded by Git PR | Working RAG query on the platform, cost noted |
 | FDE | Forward Deployed Engineer track (runs alongside phases 4 to 9, meaning to confirm): customer problem statement, discovery notes, onboard a "customer" tenant, customer-facing RAG use case, demo + runbook + handover | Customer-style demo and write-up |
 
 Cost rule: dev only in Mumbai first. Treat Phase 7 as a temporary demo: build, test, record, destroy.

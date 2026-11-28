@@ -47,6 +47,12 @@ spec:
               value: parentbased_traceidratio
             - name: OTEL_TRACES_SAMPLER_ARG
               value: "0.25"
+            # Phase 9 RAG: Claude in Amazon Bedrock. A refusal is retried once on the fallback
+            # model by the SDK's client-side middleware (server-side fallbacks are not on Bedrock).
+            - name: LLM_MODEL
+              value: anthropic.claude-opus-5-5
+            - name: LLM_FALLBACK_MODEL
+              value: anthropic.claude-opus-4-8
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

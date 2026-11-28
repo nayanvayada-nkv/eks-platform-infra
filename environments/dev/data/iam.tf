@@ -22,10 +22,28 @@ data "aws_iam_policy_document" "pod_identity_assume" {
 }
 
 data "aws_iam_policy_document" "backend" {
+  #checkov:skip=CKV_AWS_356:bedrock-mantle:CreateInference is documented only with Resource "*"; all other statements are scoped to one ARN
+  #checkov:skip=CKV_AWS_111:Same: the only "*" is the read-like inference action, not a write to an AWS resource
   statement {
     sid       = "AuroraIamLogin"
     actions   = ["rds-db:connect"]
     resources = ["arn:aws:rds-db:${var.aws_region}:${local.account_id}:dbuser:${local.cluster.cluster_resource_id}/${var.app_db_user}"]
+  }
+
+  # Phase 9 RAG: Titan embeddings (bedrock-runtime), scoped to one model ARN.
+  statement {
+    sid       = "EmbeddingsTitan"
+    actions   = ["bedrock:InvokeModel"]
+    resources = ["arn:aws:bedrock:${var.aws_region}::foundation-model/${var.embedding_model_id}"]
+  }
+
+  # Phase 9 RAG: Claude through Claude in Amazon Bedrock (bedrock-mantle endpoint, Messages API).
+  # AWS documents this action with Resource "*" (no model-level ARN format published yet);
+  # the backend NetworkPolicy and the VPC endpoint keep the call inside AWS.
+  statement {
+    sid       = "ClaudeOnBedrock"
+    actions   = ["bedrock-mantle:CreateInference"]
+    resources = ["*"]
   }
 
   statement {

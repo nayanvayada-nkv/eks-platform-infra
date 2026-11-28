@@ -16,8 +16,11 @@ module "vpc" {
 
   single_nat_gateway = true
 
-  # S3 gateway endpoint is free. Secrets Manager (Phase 4): the db-migrate job reads the Aurora
-  # admin secret over a private endpoint, so its NetworkPolicy needs no internet egress
-  # (~$0.04/hour for 3 AZs; dev is destroyed after each run). Prod: add ecr.api, ecr.dkr, sts, logs, ssm.
-  interface_endpoints = ["secretsmanager"]
+  # S3 gateway endpoint is free. Interface endpoints (~$0.013/hour per AZ each) keep these AWS
+  # calls inside the VPC, so the backend NetworkPolicy never needs internet egress:
+  #   secretsmanager  (Phase 4) db-migrate reads the Aurora admin secret
+  #   bedrock-runtime (Phase 9) Titan embeddings
+  #   bedrock-mantle  (Phase 9) Claude via the Messages API on Bedrock
+  # Dev is destroyed after each run. Prod: add ecr.api, ecr.dkr, sts, logs, ssm.
+  interface_endpoints = ["secretsmanager", "bedrock-runtime", "bedrock-mantle"]
 }

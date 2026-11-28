@@ -37,6 +37,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: backend-config
+          env:
+            - name: TENANTS_JSON # onboarding from Git: gitops/workloads/backend/tenants
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-tenants
+                  key: tenants.json
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

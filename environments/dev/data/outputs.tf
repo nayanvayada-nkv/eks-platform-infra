@@ -12,6 +12,7 @@ output "backend_config" {
     CACHE_PORT      = tostring(aws_elasticache_serverless_cache.this.endpoint[0].port)
     CACHE_NAME      = aws_elasticache_serverless_cache.this.name
     CACHE_USER      = aws_elasticache_user.app.user_id
+    EMBED_MODEL     = var.embedding_model_id
   }
 }
 

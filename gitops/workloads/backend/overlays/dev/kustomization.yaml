@@ -7,6 +7,7 @@ resources:
   - ../../network
   - ../../migrate
   - ../../routing
+  - ../../tenants
 # CI (backend-image workflow) rewrites this block with the signed ECR digest
 # and opens a pull request. Until the first build, pods cannot pull this placeholder.
 images:

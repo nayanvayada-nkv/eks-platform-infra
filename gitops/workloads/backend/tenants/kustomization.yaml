@@ -1,0 +1,5 @@
+# Customer tenants of the RAG API (Phase 9 / FDE track). Onboarding = a pull request here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - tenants.yaml
