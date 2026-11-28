@@ -1,4 +1,2 @@
 # Copy to terraform.tfvars.
 gitops_repo_url = "https://github.com/CHANGE_ME/eks-platform-infra.git"
-# Your public IP (curl -s https://checkip.amazonaws.com), for the Phase 4 ALB.
-ingress_allowed_cidrs = ["203.0.113.10/32"]

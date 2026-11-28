@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars.
+# Your public IP (curl -s https://checkip.amazonaws.com). Empty list = public, WAF-filtered.
+allowed_viewer_cidrs = ["203.0.113.10/32"]
+# Optional custom domain (needs a Route 53 hosted zone you own):
+# domain_name      = "api.example.com"
+# hosted_zone_name = "example.com"

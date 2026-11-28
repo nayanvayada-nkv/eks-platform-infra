@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (git-ignored). Email gets the budget and security alerts.
+alert_email = "you@example.com"
+# monthly_budget_usd           = 10
+# guardduty_runtime_monitoring = false

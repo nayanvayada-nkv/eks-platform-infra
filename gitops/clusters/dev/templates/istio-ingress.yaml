@@ -1,6 +1,6 @@
 {{- /*
-Istio ingress gateway: the single entry point into the mesh. The ALB (gitops/platform/ingress)
-sends traffic here; the gateway talks mTLS to the backend. Its service account
+Istio ingress gateway: the single entry point into the mesh. CloudFront -> WAF -> internal ALB
+(environments/dev/edge, bound by gitops/platform/ingress) sends traffic here; the gateway talks mTLS to the backend. Its service account
 "istio-ingress" is the identity the backend's AuthorizationPolicy allows.
 */ -}}
 apiVersion: argoproj.io/v1alpha1
@@ -39,7 +39,8 @@ spec:
     syncOptions:
       - CreateNamespace=true
 ---
-{{- if .Values.ingressAllowedCidrs }}
+{{- with .Values.edge }}
+{{- if .targetGroupArn }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -48,17 +49,17 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
   finalizers:
-    - resources-finalizer.argocd.argoproj.io # deleting the app deletes the ALB
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: {{ required "repoURL is required" .Values.repoURL | quote }}
-    targetRevision: {{ .Values.targetRevision | quote }}
+    repoURL: {{ required "repoURL is required" $.Values.repoURL | quote }}
+    targetRevision: {{ $.Values.targetRevision | quote }}
     path: gitops/platform/ingress
     helm:
       valuesObject:
-        allowedCidrs:
-          {{- toYaml .Values.ingressAllowedCidrs | nindent 10 }}
+        targetGroupArn: {{ .targetGroupArn | quote }}
+        albSecurityGroupId: {{ .albSecurityGroupId | quote }}
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-ingress
@@ -66,4 +67,5 @@ spec:
     automated:
       prune: true
       selfHeal: true
+{{- end }}
 {{- end }}
