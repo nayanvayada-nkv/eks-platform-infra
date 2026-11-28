@@ -13,7 +13,9 @@ RUN /venv/bin/pip install -r requirements.txt \
 
 # ---- runtime stage: no compilers, no pip, non-root ----
 FROM ${BASE_IMAGE}
-ENV PATH="/venv/bin:$PATH" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+# HOME=/tmp: the root filesystem is read-only; gunicorn 27's control server writes under $HOME
+# ("Read-only file system: '/home/app'" on the first run). /tmp is an emptyDir in Kubernetes.
+ENV PATH="/venv/bin:$PATH" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HOME=/tmp
 # Apply Debian security fixes released after the base image was built, and drop pip:
 # the app never installs packages at runtime, and pip vendors its own (often vulnerable) libraries.
 RUN apt-get update \

@@ -38,10 +38,12 @@ Target architecture: `docs/architecture.webp`, mapped box by box in `docs/archit
   (GitHub OIDC, access entries, Pod Identity, IMDSv2 hop 1) -> supply chain (Trivy gate, SBOM, Cosign
   signature with a KMS key, deploy by digest) -> cluster (PSA restricted now; Kyverno, Istio,
   NetworkPolicy as code in Phase 3, ADR 0006) -> data (KMS everywhere; apps log in with IAM tokens, no passwords, ADR 0007).
-- **Be honest about status.** Only Phase 0 (bootstrap) has ever been applied to AWS, and that state
-  bucket was later destroyed. Phases 1 to 9 (and the FDE track) exist as code that passes validate, tflint, Checkov,
-  actionlint, tests and Trivy, but they have **not** been applied. Never describe them as running or
-  proven until the test run in `docs/runbooks/phase1-2-test-run.md` has succeeded.
+- **Be honest about status.** First real AWS run on 28 Nov 2026 (`docs/sessions/2026-11-28-run-day-1.md`):
+  Phases 0-4 proven live (signed deploy, unsigned image refused, app serving from Aurora/Valkey with IAM
+  logins); Phases 5-6 partly (security stack, WAF, AMP up; CloudFront blocked pending AWS account
+  verification; Managed Grafana unavailable in Mumbai). Phases 7-9 and the FDE eval are code only, not
+  yet run. At the end of the day every stack, bootstrap included, was destroyed at the owner's request
+  (account empty of this project). Never claim more than this.
 - Never apply, destroy or call AWS without the user's explicit OK for that step (cost).
 
 ## Bash rules

@@ -59,6 +59,9 @@ resource "kubectl_manifest" "argocd_root_app" {
     metadata = {
       name      = "root-dev"
       namespace = "argocd"
+      # Deleting the root app also deletes its child apps (and their resources). Without this,
+      # the first teardown left all child apps behind (found 28 Nov 2026).
+      finalizers = ["resources-finalizer.argocd.argoproj.io"]
     }
     spec = {
       project = "default"
